@@ -4,6 +4,8 @@ using Glob
 using Printf
 using DataStructures
 
+# Print the image sizes for the training and test sets
+
 function get_image_sizes(path::String, extension::String)
     # Get a list of all .jpeg files in the directory
     files = glob("*.$extension", path)
@@ -37,7 +39,7 @@ end
 
 function main()
     # Call the functions
-    base_path = "CellData/OCT"
+    base_path = "data/CellData/OCT"
     subfolders = ["train/NORMAL", "train/DRUSEN", "train/DME", "train/CNV", "test/NORMAL", "test/DRUSEN", "test/DME", "test/CNV"]
     total_image_sizes = DefaultDict{Tuple{Int64, Int64}, Int64}(0)
 
