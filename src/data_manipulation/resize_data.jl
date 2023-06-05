@@ -53,20 +53,20 @@ function main()
     # Call the function for each subdirectory
     base_path = "data/CellData/OCT"
     subfolders = [
-        "train/NORMAL",
-        "train/DRUSEN",
-        "train/DME",
-        "train/CNV",
+        # "train/NORMAL",
+        # "train/DRUSEN",
+        # "train/DME",
+        # "train/CNV",
         "test/NORMAL",
         "test/DRUSEN",
         "test/DME",
         "test/CNV",
     ]
-    new_dims = (496, 512) # TODO can change this later
+    new_dims = (64, 64) # TODO can change this later
 
     for subfolder in subfolders
         old_path = joinpath(base_path, subfolder)
-        new_path = joinpath("data/data_resized", "all")
+        new_path = joinpath("data/data_resized", "TESTING")
 
         # Create the new directory if it doesn't exist
         mkpath(new_path)

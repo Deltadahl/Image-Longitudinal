@@ -65,7 +65,7 @@ end
 # Define the loss function
 function loss(x, m::VAE)
     decoded, mu, logvar = m(x)
-    reconstruction_loss = mse(decoded, x)
+    reconstruction_loss = mse(reshape(decoded, :), reshape(x, :))
     kl_divergence = -0.5 .* sum(1 .+ logvar .- mu .^ 2 .- exp.(logvar))
     return reconstruction_loss + kl_divergence
 end
