@@ -1,5 +1,6 @@
 # VAE.jl
 using Flux
+using CUDA
 include("constants.jl")
 
 # Define the encoder
@@ -48,9 +49,7 @@ end
 
 function reparametrize(mu, logvar)
     r = randn(Float32, size(mu)) |> DEVICE
-    # return mu + exp.(0.5 .* logvar) .* r
     return mu + exp.(0.5f0 .* logvar) .* r
-
 end
 
 function (m::VAE)(x)
@@ -67,5 +66,6 @@ function loss(x, m::VAE)
     decoded, mu, logvar = m(x)
     reconstruction_loss = mse(reshape(decoded, :), reshape(x, :))
     kl_divergence = -0.5 .* sum(1 .+ logvar .- mu .^ 2 .- exp.(logvar))
-    return reconstruction_loss + kl_divergence
+    l = reconstruction_loss + kl_divergence
+    return l
 end
