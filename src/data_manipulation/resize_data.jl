@@ -19,7 +19,15 @@ function resize_and_save_image(file::String, new_path::String, new_dims::Tuple{I
     elseif any(dims .< new_dims)
         pad_before = div.((new_dims .- dims), 2)
         pad_after = new_dims .- dims .- pad_before
-        image = PaddedView(Gray(0), image, (pad_before[1] + dims[1] + pad_after[1], pad_before[2] + dims[2] + pad_after[2]), (pad_before[1] + 1, pad_before[2] + 1))
+        image = PaddedView(
+            Gray(0),
+            image,
+            (
+                pad_before[1] + dims[1] + pad_after[1],
+                pad_before[2] + dims[2] + pad_after[2],
+            ),
+            (pad_before[1] + 1, pad_before[2] + 1),
+        )
     end
 
     # Save the resized/cropped image
@@ -44,7 +52,16 @@ end
 function main()
     # Call the function for each subdirectory
     base_path = "data/CellData/OCT"
-    subfolders = ["train/NORMAL", "train/DRUSEN", "train/DME", "train/CNV", "test/NORMAL", "test/DRUSEN", "test/DME", "test/CNV"]
+    subfolders = [
+        "train/NORMAL",
+        "train/DRUSEN",
+        "train/DME",
+        "train/CNV",
+        "test/NORMAL",
+        "test/DRUSEN",
+        "test/DME",
+        "test/CNV",
+    ]
     new_dims = (496, 512) # TODO can change this later
 
     for subfolder in subfolders

@@ -11,7 +11,7 @@ function get_image_sizes(path::String, extension::String)
     files = glob("*.$extension", path)
 
     # Initialize a dictionary to store the image sizes and their counts
-    image_sizes = DefaultDict{Tuple{Int64, Int64}, Int64}(0)
+    image_sizes = DefaultDict{Tuple{Int64,Int64},Int64}(0)
 
     # Loop over the files
     for file in files
@@ -25,7 +25,10 @@ function get_image_sizes(path::String, extension::String)
     return image_sizes
 end
 
-function print_image_sizes(label::String, image_sizes::DefaultDict{Tuple{Int64, Int64}, Int64})
+function print_image_sizes(
+    label::String,
+    image_sizes::DefaultDict{Tuple{Int64,Int64},Int64},
+)
     # Convert the dictionary to an array of pairs and sort it by y dimension first, then x dimension
     image_sizes = sort(collect(image_sizes), by = x -> (x[1][2], x[1][1]))
 
@@ -40,8 +43,17 @@ end
 function main()
     # Call the functions
     base_path = "data/CellData/OCT"
-    subfolders = ["train/NORMAL", "train/DRUSEN", "train/DME", "train/CNV", "test/NORMAL", "test/DRUSEN", "test/DME", "test/CNV"]
-    total_image_sizes = DefaultDict{Tuple{Int64, Int64}, Int64}(0)
+    subfolders = [
+        "train/NORMAL",
+        "train/DRUSEN",
+        "train/DME",
+        "train/CNV",
+        "test/NORMAL",
+        "test/DRUSEN",
+        "test/DME",
+        "test/CNV",
+    ]
+    total_image_sizes = DefaultDict{Tuple{Int64,Int64},Int64}(0)
 
     for subfolder in subfolders
         path_current = joinpath(base_path, subfolder)

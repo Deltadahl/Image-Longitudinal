@@ -12,5 +12,5 @@ image = images[:, :, image_index]
 println(size(image))
 
 # Display the image
-heatmap(image, color=:grays, aspect_ratio=:equal, axis=:off)
+heatmap(image, color = :grays, aspect_ratio = :equal, axis = :off)
 

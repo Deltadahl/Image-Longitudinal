@@ -6,12 +6,12 @@ using Flux: Chain, @functor
 # Define the encoder
 function create_encoder()
     return Chain(
-        Conv((3, 3), 1=>32, stride=2, pad=SamePad(), relu),
-        Conv((3, 3), 32=>64, stride=2, pad=SamePad(), relu),
-        Conv((3, 3), 64=>128, stride=2, pad=SamePad(), relu),
-        Conv((3, 3), 64=>256, stride=2, pad=SamePad(), relu),
+        Conv((3, 3), 1 => 32, stride = 2, pad = SamePad(), relu),
+        Conv((3, 3), 32 => 64, stride = 2, pad = SamePad(), relu),
+        Conv((3, 3), 64 => 128, stride = 2, pad = SamePad(), relu),
+        Conv((3, 3), 64 => 256, stride = 2, pad = SamePad(), relu),
         flatten,
-        Dense(31 * 32 * 256, 1024, relu) # TODO might just ignore this layer?
+        Dense(31 * 32 * 256, 1024, relu), # TODO might just ignore this layer?
     )
 end
 
@@ -25,19 +25,19 @@ function create_decoder()
     return Chain(
         Dense(512, 31 * 32 * 256, relu),
         x -> reshape(x, (31, 32, 256, :)),
-        ConvTranspose((3, 3), 256=>128, stride=2, pad=SamePad(), relu),
-        ConvTranspose((3, 3), 128=>64, stride=2, pad=SamePad(), relu),
-        ConvTranspose((3, 3), 64=>32, stride=2, pad=SamePad(), relu),
-        ConvTranspose((3, 3), 32=>1, stride=2, pad=SamePad(), sigmoid)
+        ConvTranspose((3, 3), 256 => 128, stride = 2, pad = SamePad(), relu),
+        ConvTranspose((3, 3), 128 => 64, stride = 2, pad = SamePad(), relu),
+        ConvTranspose((3, 3), 64 => 32, stride = 2, pad = SamePad(), relu),
+        ConvTranspose((3, 3), 32 => 1, stride = 2, pad = SamePad(), sigmoid),
     )
 end
 
 # Define the VAE
 struct VAE
-    encoder
-    mu_layer
-    logvar_layer
-    decoder
+    encoder::Any
+    mu_layer::Any
+    logvar_layer::Any
+    decoder::Any
 end
 
 @functor VAE
@@ -57,6 +57,6 @@ end
 function loss(x, m::VAE)
     decoded, mu, logvar = m(x)
     reconstruction_loss = mse(decoded, x)
-    kl_divergence = -0.5 .* sum(1 .+ logvar .- mu.^2 .- exp.(logvar))
+    kl_divergence = -0.5 .* sum(1 .+ logvar .- mu .^ 2 .- exp.(logvar))
     return reconstruction_loss + kl_divergence
 end
