@@ -49,7 +49,7 @@ end
 
 function reparametrize(mu, logvar)
     r = randn(Float32, size(mu)) |> DEVICE
-    return mu + exp.(0.5f0 .* logvar) .* r
+    return mu + exp.(logvar ./ 2) .* r
 end
 
 function (m::VAE)(x)

@@ -8,6 +8,7 @@ const CLASSES = Dict(
     3 => "DRUSEN",
     4 => "NORMAL"
 )
-const BATCH_SIZE = 64
+const BATCH_SIZE = 16
 const DIRECTORY_PATH = "data/data_resized/all"
 const DEVICE = gpu
+const OUTPUT_IMAGE_DIR = "output_images"

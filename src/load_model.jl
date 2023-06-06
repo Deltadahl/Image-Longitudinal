@@ -1,38 +1,56 @@
 # load_model.jl
-using BSON: @load
+# using BSON: @load
 using Images
+using JLD2, FileIO
 
 include("VAE.jl")
+include("data_manipulation/data_loader.jl")
 
-function main()
-    # Load the model
-    @load "saved_models/vae.bson" vae
-    vae = vae |> DEVICE
-    # Load an image
-    base_path = "data/data_resized/all_develop"
-    image_name = "CNV-13823-1.jpeg"
-    x = load(joinpath(base_path, image_name))
+using Glob
 
-    # Transform the image to a 4D tensor
-    println("1")
+function output_image(vae)
+    loader = DataLoader("data/data_resized/all_develop", BATCH_SIZE) |> DEVICE
+    images, labels = next_batch(loader)
+    images = images |> DEVICE
 
-    x = Float32.(Gray.(x))
-        # Reshape the image to the format (height, width, channels, batch size)
-    x = reshape(x, size(x)..., 1, 1)
-    x = x |> DEVICE
+    reconstructed, _, _ = vae(images)
 
-    println("2")
-    println("x size $(size(x))")
-    # Run the VAE on the image
-    reconstructed, _, _ = vae(x)
-    println("3")
     # Convert the reconstructed tensor back to an image
-    # reconstructed_image = Images.colorview(Gray, reconstructed)
-    reconstructed = cpu(reconstructed)
+    reconstructed = cpu(reconstructed[:,:,:,1])
     reconstructed_image = Images.colorview(Gray, dropdims(reconstructed, dims=3))  # remove the singleton dimensions
 
     # Save the reconstructed image
-    save("reconstructed_image.png", reconstructed_image)
+    if !isdir(OUTPUT_IMAGE_DIR)  # make output directory, (git ignored)
+        mkdir(OUTPUT_IMAGE_DIR)
+    end
+
+    # Get the latest integer used in the saved files
+    png_files = glob("*-reconstructed_image.png", OUTPUT_IMAGE_DIR)
+    if isempty(png_files)
+        new_integer = 1
+    else
+        latest_integer = maximum(parse(Int, match(r"(\d+)-reconstructed_image.png", file).captures[1]) for file in png_files)
+        new_integer = latest_integer + 1
+    end
+
+    # Update the path_to_image to use the new integer
+    path_to_image = joinpath(OUTPUT_IMAGE_DIR, "$new_integer-reconstructed_image.png")
+    save(path_to_image, reconstructed_image)
+    println("Saved image to $path_to_image")
+
+    loader.idx = 1
+    Random.shuffle!(loader.filenames)
+    return nothing
+end
+
+
+function main()
+    # Load the model
+    # @load "saved_models/vae.bson" vae
+    vae = load("saved_models/epoch_1_batch_END_vae.jld2", "vae")
+    vae = vae |> DEVICE
+    output_image(vae)
+    return nothing
 end
 
 main()

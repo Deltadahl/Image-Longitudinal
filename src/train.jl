@@ -2,7 +2,9 @@
 using Flux
 using Flux.Optimise
 using Flux: params
-using BSON: @save
+# using BSON: @save
+using JLD2, FileIO
+using Glob
 
 # Include necessary files
 include("data_manipulation/data_loader.jl")
@@ -18,76 +20,66 @@ function train!(model, x, opt)
     Optimise.update!(opt, params(model), grads)
 end
 
-function show_image(vae)
-    base_path = "data/data_resized/all_develop"
-    image_name = "CNV-13823-1.jpeg"
-    x = load(joinpath(base_path, image_name))
-
-    # Transform the image to a 4D tensor
-    println("1")
-    x = reshape(x, (size(x)..., 1, 1)) |> DEVICE
-    # image = Float32.(Gray.(image))
-    #     # Reshape the image to the format (height, width, channels, batch size)
-    #     image = reshape(image, size(image)..., 1, 1)
-    println("2")
-    println("x size $(size(x))")
-    # Run the VAE on the image
-    reconstructed, _, _ = vae(x)
-    println("3")
-    # Convert the reconstructed tensor back to an image
-    # reconstructed_image = Images.colorview(Gray, reconstructed)
-    reconstructed = cpu(reconstructed)
-    reconstructed_image = Images.colorview(Gray, dropdims(reconstructed, dims=3))  # remove the singleton dimensions
-
-    # Save the reconstructed image
-    save("reconstructed_image.png", reconstructed_image)
-end
-
 function main()
-    # Initialize the data loader
-    loader = DataLoader("data/data_resized/all_develop", BATCH_SIZE)
+    epochs = 3
+    load_model = true
+    model_name = "epoch_1_batch_END_vae.jld2"
 
-    # Create the encoder, mu/logvar layers and decoder
-    encoder = create_encoder()
-    mu_layer, logvar_layer = create_mu_logvar_layers()
-    decoder = create_decoder()
+    loader = DataLoader("data/data_resized/all", BATCH_SIZE) |> DEVICE
 
-    # Create the VAE
-    vae = VAE(encoder, mu_layer, logvar_layer, decoder) |> DEVICE
+    if load_model
+        vae = load("saved_models/" * model_name, "vae") |> DEVICE
+    else
+        encoder = create_encoder()
+        mu_layer, logvar_layer = create_mu_logvar_layers()
+        decoder = create_decoder()
+        vae = VAE(encoder, mu_layer, logvar_layer, decoder) |> DEVICE
+    end
 
-    # Define an optimizer
     opt = ADAM(0.001)
 
-    # Number of epochs
-    epochs = 2
-
+    start_time = time()
     # Train the model
     for epoch in 1:epochs
         println("Epoch: $epoch")
         batch_nr = 0
         while true
             batch_nr += 1
-            @info "Batch $batch_nr"
 
             images, _ = next_batch(loader)
-            images = gpu(images)
             if images === nothing
                 break
             end
+            images = images |> DEVICE
 
             train!(vae, images, opt)
+            if batch_nr % 100 == 0
+                println("Batch $batch_nr")
+
+                # TODO test to use this instead
+                # elapsed_time = time() - start_time  # get elapsed time in seconds
+                # hours, rem = divrem(elapsed_time, 3600)  # convert to hours and remainder
+                # minutes, seconds = divrem(rem, 60)  # convert remainder to minutes and seconds
+                # println("Time elapsed: $(Int(hours))h $(Int(minutes))m $(Int(seconds))s")
+
+                println("Time elapsed: $(time() - start_time)")
+                if batch_nr % 1000 == 0
+                    save_path = "saved_models/epoch_$(epoch)_batch_$(batch_nr)_vae.jld2"
+                    save(save_path, "vae", vae)
+                    print("saved model to $save_path")
+                end
+            end
         end
 
         # Reset the loader for the next epoch
         loader.idx = 1
         Random.shuffle!(loader.filenames)
+        save_path = "saved_models/epoch_$(epochs)_batch_END_vae.jld2"
+        save(save_path, "vae", vae)
+        print("saved model to $save_path")
     end
 
-    # Save the model
-    @save "saved_models/vae.bson" vae
-
-
-
+    return nothing
 end
 
 main()
