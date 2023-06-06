@@ -7,6 +7,8 @@ using JLD2, FileIO
 # include("VAE_MNIST.jl")
 include("data_manipulation/data_loader.jl")
 include("data_manipulation/data_loader_MNIST.jl")
+include("constants.jl")
+include("VAE_MNIST.jl")
 
 using Glob
 
@@ -20,8 +22,10 @@ function output_image(vae)
     reconstructed, _, _ = vae(images)
 
     # Convert the reconstructed tensor back to an image
-    reconstructed = cpu(reconstructed[:,:,:,1])
-    reconstructed_image = Images.colorview(Gray, dropdims(reconstructed, dims=3))  # remove the singleton dimensions
+    reconstructed = cpu(reconstructed[:,:,1,1])
+    original_image = cpu(images[:,:,1,1])
+    reconstructed_image = Images.colorview(Gray, reconstructed)  # remove the singleton dimensions
+    original_image = Images.colorview(Gray, original_image)  # remove the singleton dimensions
 
     # Save the reconstructed image
     if !isdir(OUTPUT_IMAGE_DIR)  # make output directory, (git ignored)
@@ -39,7 +43,9 @@ function output_image(vae)
 
     # Update the path_to_image to use the new integer
     path_to_image = joinpath(OUTPUT_IMAGE_DIR, "$new_integer-reconstructed_image.png")
+    path_to_original_image = joinpath(OUTPUT_IMAGE_DIR, "$new_integer-original_image.png")
     save(path_to_image, reconstructed_image)
+    save(path_to_original_image, original_image)
     println("Saved image to $path_to_image")
 
     loader.idx = 1
@@ -50,10 +56,15 @@ end
 
 function main()
     # Load the model
-    # @load "saved_models/vae.bson" vae
-    model_path = "saved_models/MNIST_epoch_1_batch_END.jld2"
+    model_path = "saved_models/MNIST_epoch_2_batch_END.jld2"
     vae = load(model_path, "vae")
     vae = vae |> DEVICE
+
+    # encoder = create_encoder()
+    # mu_layer, logvar_layer = create_mu_logvar_layers()
+    # decoder = create_decoder()
+    # vae = VAE(encoder, mu_layer, logvar_layer, decoder) |> DEVICE
+
     output_image(vae)
     return nothing
 end
