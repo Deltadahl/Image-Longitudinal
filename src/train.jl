@@ -7,25 +7,28 @@ using JLD2, FileIO
 using Glob
 
 # Include necessary files
-include("data_manipulation/data_loader.jl")
-include("VAE.jl")
+# include("data_manipulation/data_loader.jl")
+# include("VAE.jl")
+include("data_manipulation/data_loader_MNIST.jl")
+include("VAE_MNIST.jl")
 
 function train!(model, x, opt)
     grads = Flux.gradient(params(model)) do
         l = loss(x, model)
         return l
     end
-    # loss_val = loss(x, model)
-    # println("Loss: $loss_val")
     Optimise.update!(opt, params(model), grads)
 end
 
 function main()
-    epochs = 3
-    load_model = true
-    model_name = "epoch_1_batch_END_vae.jld2"
+    epochs = 2
+    load_model = false
+    vae_mnist = "MNIST"
+    model_name = "$(vae_mnist)_epoch_3_batch_END.jld2"
+    # data_path = "data/data_resized/all_develop"
+    data_path = "data/MNIST"
 
-    loader = DataLoader("data/data_resized/all", BATCH_SIZE) |> DEVICE
+    loader = DataLoader(data_path, BATCH_SIZE) |> DEVICE
 
     if load_model
         vae = load("saved_models/" * model_name, "vae") |> DEVICE
@@ -41,6 +44,7 @@ function main()
     start_time = time()
     # Train the model
     for epoch in 1:epochs
+        loss_tot = 0.0
         println("Epoch: $epoch")
         batch_nr = 0
         while true
@@ -56,27 +60,26 @@ function main()
             if batch_nr % 100 == 0
                 println("Batch $batch_nr")
 
-                # TODO test to use this instead
-                # elapsed_time = time() - start_time  # get elapsed time in seconds
-                # hours, rem = divrem(elapsed_time, 3600)  # convert to hours and remainder
-                # minutes, seconds = divrem(rem, 60)  # convert remainder to minutes and seconds
-                # println("Time elapsed: $(Int(hours))h $(Int(minutes))m $(Int(seconds))s")
+                elapsed_time = time() - start_time  # get elapsed time in seconds
+                hours, rem = divrem(elapsed_time, 3600)  # convert to hours and remainder
+                minutes, seconds = divrem(rem, 60)  # convert remainder to minutes and seconds
+                println("Time elapsed: $(floor(Int, hours))h $(floor(Int, minutes))m $(floor(Int, seconds))s")
 
-                println("Time elapsed: $(time() - start_time)")
                 if batch_nr % 1000 == 0
-                    save_path = "saved_models/epoch_$(epoch)_batch_$(batch_nr)_vae.jld2"
+                    save_path = "saved_models/$(vae_mnist)_epoch_$(epoch)_batch_$(batch_nr).jld2"
                     save(save_path, "vae", vae)
-                    print("saved model to $save_path")
+                    println("saved model to $save_path")
                 end
             end
+            # l = loss(images, vae)
         end
 
         # Reset the loader for the next epoch
         loader.idx = 1
         Random.shuffle!(loader.filenames)
-        save_path = "saved_models/epoch_$(epochs)_batch_END_vae.jld2"
+        save_path = "saved_models/$(vae_mnist)_epoch_$(epoch)_batch_END.jld2"
         save(save_path, "vae", vae)
-        print("saved model to $save_path")
+        println("saved model to $save_path")
     end
 
     return nothing

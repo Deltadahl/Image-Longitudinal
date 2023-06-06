@@ -18,17 +18,13 @@ function DataLoader(dir::String, batch_size::Int)
 end
 
 function get_label(filename::String)
-    if startswith(filename, "CNV")
-        return 1
-    elseif startswith(filename, "DME")
-        return 2
-    elseif startswith(filename, "DRUSEN")
-        return 3
-    elseif startswith(filename, "NORMAL")
-        return 4
-    else
-        error("Invalid filename: ", filename)
+    for i in 0:9
+        if startswith(filename, string(i))
+            return i
+        end
     end
+    return 0
+    # error("Invalid filename: ", filename)
 end
 
 function next_batch(loader::DataLoader)
@@ -57,6 +53,6 @@ function next_batch(loader::DataLoader)
     loader.idx += batch_size
     # Concatenate all images along the 4th dimension to form a single batch
     images = cat(images..., dims=4)
-    labels = Flux.onehotbatch(labels, 1:4)
+    labels = Flux.onehotbatch(labels, 0:9)
     return images, labels
 end

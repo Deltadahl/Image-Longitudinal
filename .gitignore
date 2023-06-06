@@ -2,4 +2,5 @@
 CellData
 data_resized
 output_images
-
+data
+saved_models

@@ -3,13 +3,17 @@
 using Images
 using JLD2, FileIO
 
-include("VAE.jl")
+# include("VAE.jl")
+# include("VAE_MNIST.jl")
 include("data_manipulation/data_loader.jl")
+include("data_manipulation/data_loader_MNIST.jl")
 
 using Glob
 
 function output_image(vae)
-    loader = DataLoader("data/data_resized/all_develop", BATCH_SIZE) |> DEVICE
+    # data_path = "data/data_resized/all_develop"
+    data_path = "data/MNIST"
+    loader = DataLoader(data_path, BATCH_SIZE) |> DEVICE
     images, labels = next_batch(loader)
     images = images |> DEVICE
 
@@ -47,7 +51,8 @@ end
 function main()
     # Load the model
     # @load "saved_models/vae.bson" vae
-    vae = load("saved_models/epoch_1_batch_END_vae.jld2", "vae")
+    model_path = "saved_models/MNIST_epoch_1_batch_END.jld2"
+    vae = load(model_path, "vae")
     vae = vae |> DEVICE
     output_image(vae)
     return nothing
