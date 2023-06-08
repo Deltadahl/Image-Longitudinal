@@ -5,8 +5,8 @@ using Glob
 
 # include("VAE.jl")
 # include("data_manipulation/data_loader.jl")
-include("VAE_MNIST.jl")
-include("data_manipulation/data_loader_MNIST.jl")
+include("VAE_OCT.jl")
+include("data_manipulation/data_loader_OCT.jl")
 include("constants.jl")
 
 function generate_image(vae::VAE)
@@ -25,12 +25,15 @@ end
 
 function output_image(vae)
     # data_path = "data/data_resized/all_develop"
-    data_path = "data/MNIST_small"
-    loader = DataLoader(data_path, BATCH_SIZE) |> DEVICE
+    data_path = "data/data_resized/all"
+    loader = DataLoader(data_path, 2) |> DEVICE
     images, labels = next_batch(loader)
     images = images |> DEVICE
 
-    reconstructed, _, _ = vae(images)
+    # reconstructed, _, _ = vae(images)
+    encoded = vae.encoder(images)
+    μ = vae.μ_layer(encoded)
+    reconstructed = vae.decoder(μ)
 
     # Convert the reconstructed tensor back to an image
     reconstructed = cpu(reconstructed[:,:,1,1])
@@ -63,9 +66,22 @@ function output_image(vae)
     Random.shuffle!(loader.filenames)
 
     generated_image = generate_image(vae)
-    path_to_image = joinpath(OUTPUT_IMAGE_DIR, "$new_integer-generated_image.png")
+    path_to_image = joinpath(OUTPUT_IMAGE_DIR, "generated_image_$new_integer.png")
     save(path_to_image, generated_image)
     println("Saved image to $path_to_image")
+
+    # ----
+
+    # encoded = vae.encoder(images)
+    # μ = vae.μ_layer(encoded)
+    # println("size mu = $(size(μ))")
+    # μ[3,:] .+= μ[3,:] .+ 3.0
+    # decoded = vae.decoder(μ)
+    # # Convert the reconstructed tensor back to an image
+    # reconstructed = cpu(decoded[:,:,1,1])
+    # reconstructed_image = Images.colorview(Gray, reconstructed)  # remove the singleton dimensions
+    # path_to_image = joinpath(OUTPUT_IMAGE_DIR, "$new_integer-reconstructed_image_altered.png")
+    # save(path_to_image, reconstructed_image)
 
     return nothing
 end
@@ -73,10 +89,9 @@ end
 
 function main()
     # Load the model
-    model_path = "saved_models/MNIST_epoch_20_batch_END.jld2"
+    model_path = "saved_models/OCT_epoch_7.jld2"
     vae = load(model_path, "vae")
     vae = vae |> DEVICE
-
     output_image(vae)
     return nothing
 end

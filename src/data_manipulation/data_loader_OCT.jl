@@ -2,7 +2,7 @@ using Images
 using FileIO
 using Random
 using Flux
-using Plots
+# using Plots
 
 mutable struct DataLoader
     dir::String
