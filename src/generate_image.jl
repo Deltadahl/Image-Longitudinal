@@ -15,7 +15,6 @@ function generate_image(vae::VAE)
 
     # Use the decoder to generate an image
     generated = vae.decoder(z)
-    println(size(generated))
 
     # Reshape the generated tensor and convert it to an image
     generated_image = cpu(generated[:,:,1,1])
@@ -74,7 +73,7 @@ end
 
 function main()
     # Load the model
-    model_path = "saved_models/MNIST_epoch_3_batch_END.jld2"
+    model_path = "saved_models/MNIST_epoch_20_batch_END.jld2"
     vae = load(model_path, "vae")
     vae = vae |> DEVICE
 

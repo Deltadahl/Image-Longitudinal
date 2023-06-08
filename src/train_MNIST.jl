@@ -18,7 +18,7 @@ end
 
 
 function main()
-    epochs = 30
+    epochs = 20
     load_model = false
     model_name = "MNIST_epoch_3_batch_END.jld2"
     data_path = "data/MNIST_small"

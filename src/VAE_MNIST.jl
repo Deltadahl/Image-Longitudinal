@@ -70,12 +70,12 @@ end
 
 function loss(m::VAE, x, y)
     decoded, μ, logvar = m(x)
-    reconstruction_loss = Flux.Losses.mse(decoded, x)
-    # do the reconstruction loss for each image in the batch
-    # reconstruction_loss = sum(Flux.Losses.mse(decoded, x))
+    # reconstruction_loss = Flux.Losses.mse(decoded, x) * size(x)[4]
+    mse_per_image = mean((decoded - x).^2, dims=(1,2,3))
+    reconstruction_loss = sum(mse_per_image)
     kl_divergence = -0.5 .* sum(1 .+ logvar .- μ .^ 2 .- exp.(logvar))
-    β = 1
-    return reconstruction_loss + β * kl_divergence
+    β = 10^(-5) * 32
+    return (reconstruction_loss + β * kl_divergence) / size(x)[4]
 end
 
 Flux.trainable(m::VAE) = (m.encoder, m.μ_layer, m.logvar_layer, m.decoder)

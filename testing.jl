@@ -1,26 +1,11 @@
-using Images, FileIO
+using Flux
 
-function read_mnist_images(filename)
-    f = open(filename)
-    magic_number = ntoh(read(f, Int32))
-    num_images = ntoh(read(f, Int32))
-    num_rows = ntoh(read(f, Int32))
-    num_cols = ntoh(read(f, Int32))
-    images = Array{UInt8, 2}[]
-    for i in 1:num_images
-        image = reshape(read(f, UInt8, num_rows*num_cols), num_rows, num_cols)
-        push!(images, image)
-    end
-    close(f)
-    return images
-end
+x = ones(Float32, 2,2,1,3)
+y = zeros(Float32, 2,2,1,3)
+println("x: $x")
+println("y: $y")
 
-function save_images(images, folder)
-    for (i, image) in enumerate(images)
-        save(joinpath(folder, "$i.png"), Gray.(image ./ 255))
-    end
-end
+x[1,1,1,2] = 2f0
+y[1,1,1,2] = 2f0
 
-# Replace 'train-images-idx3-ubyte' with the path to your file
-images = read_mnist_images("data/train-images.idx3-ubyte")
-save_images(images, "output_folder")
+println(Flux.Losses.mse(x, y))
