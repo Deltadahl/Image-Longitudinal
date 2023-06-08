@@ -26,7 +26,7 @@ end
 function output_image(vae)
     # data_path = "data/data_resized/all_develop"
     data_path = "data/data_resized/all"
-    loader = DataLoader(data_path, 2) |> DEVICE
+    loader = DataLoader(data_path, 2) |> DEVICE # TODO chagne to 1
     images, labels = next_batch(loader)
     images = images |> DEVICE
 
@@ -89,7 +89,7 @@ end
 
 function main()
     # Load the model
-    model_path = "saved_models/OCT_epoch_7.jld2"
+    model_path = "saved_models/OCT_epoch_1.jld2"
     vae = load(model_path, "vae")
     vae = vae |> DEVICE
     output_image(vae)

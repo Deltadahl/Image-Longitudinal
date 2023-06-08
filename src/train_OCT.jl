@@ -20,8 +20,8 @@ end
 function main()
     epochs = 5
 
-    load_model = true
-    load_model_nr = 2
+    load_model = false
+    load_model_nr = 7
     model_name = "OCT_epoch_$load_model_nr.jld2"
     data_path = "data/data_resized/all"
 
@@ -63,7 +63,7 @@ function main()
                 rec_loss = sum(loss_list_rec)/length(loss_list_rec)
                 kl_loss = sum(loss_list_kl)/length(loss_list_kl)
                 epoch_loss = rec_loss + kl_loss
-                println("Loss tot: $(Printf.@sprintf("%.4f", epoch_loss))\nLoss rec: $(Printf.@sprintf("%.4f", rec_loss))\nLoss kl:  $(Printf.@sprintf("%.4f", kl_loss))")
+                println("Loss tot: $(Printf.@sprintf("%.6f", epoch_loss))\nLoss rec: $(Printf.@sprintf("%6f", rec_loss))\nLoss kl:  $(Printf.@sprintf("%.6f", kl_loss))")
             end
         end
         println("--- Epoch $(epoch) finished ---")
