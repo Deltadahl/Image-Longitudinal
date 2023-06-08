@@ -5,34 +5,19 @@ using Flux: params
 using JLD2, FileIO
 using Glob
 using Printf
-
-# Include necessary files
-# include("data_manipulation/data_loader.jl")
-# include("VAE.jl")
 include("data_manipulation/data_loader_MNIST.jl")
 include("VAE_MNIST.jl")
 
-function train!(model, x, opt)
-    losses = Float64[]
-
-    # Loop for a number of epochs
-    # Compute the gradients
-    grads = Flux.gradient(params(model)) do
-        l = loss(x, model)
-        l
-    end
-
-    # Update the model parameters
-    Flux.Optimise.update!(opt, params(model), grads)
-
-    # Store the current loss
-    push!(losses, loss(x, model))
-    return losses
+function train!(model, x, opt, ps, y)
+    batch_loss, back = Flux.pullback(() -> loss(model, x, y), ps)
+    grads = back(1)
+    Optimise.update!(opt, ps, grads)
+    return batch_loss
 end
 
 
 function main()
-    epochs = 10000
+    epochs = 4
     load_model = false
     vae_mnist = "MNIST"
     model_name = "$(vae_mnist)_epoch_3_batch_END.jld2"
@@ -50,27 +35,28 @@ function main()
         vae = VAE(encoder, mu_layer, logvar_layer, decoder) |> DEVICE
     end
 
+    ps = params(vae)
     opt = ADAM(0.001)
 
     start_time = time()
+    loss_list = []
     # Train the model
     for epoch in 1:epochs
-        loss_tot = 0.0
+        epoch_loss = 0.0
         println("Epoch: $epoch")
         batch_nr = 0
         while true
             batch_nr += 1
 
-            images, _ = next_batch(loader)
+            images, labels = next_batch(loader)
             if images === nothing
                 break
             end
             images = images |> DEVICE
+            labels = labels |> DEVICE
 
-            # train!(vae, images, opt)
-            # Then, call the function with your model, images (x), labels (y), and optimizer (opt)
-            losses = train!(vae, images, opt)
-            loss_tot += losses[1]
+            batch_loss = train!(vae, images, opt, ps, labels)
+            epoch_loss += batch_loss
 
             # Print the total loss
 
@@ -92,15 +78,21 @@ function main()
             # end
         end
 
+        elapsed_time = time() - start_time
+        hours, rem = divrem(elapsed_time, 3600)
+        minutes, seconds = divrem(rem, 60)
+        println("Time elapsed: $(floor(Int, hours))h $(floor(Int, minutes))m $(floor(Int, seconds))s")
+
+        push!(loss_list, epoch_loss)
+        println("Loss: $(Printf.@sprintf("%.4f", epoch_loss))")
+
         # Reset the loader for the next epoch
         loader.idx = 1
         Random.shuffle!(loader.filenames)
         save_path = "saved_models/$(vae_mnist)_epoch_$(epoch)_batch_END.jld2"
         save(save_path, "vae", vae)
-        # println("saved model to $save_path")
-        println("Total loss: ", loss_tot)
+        println("saved model to $save_path")
     end
-
     return nothing
 end
 

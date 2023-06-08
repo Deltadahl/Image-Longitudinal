@@ -1,20 +1,32 @@
 # load_model.jl
-# using BSON: @load
 using Images
 using JLD2, FileIO
+using Glob
 
 # include("VAE.jl")
-# include("VAE_MNIST.jl")
-include("data_manipulation/data_loader.jl")
+# include("data_manipulation/data_loader.jl")
+include("VAE_MNIST.jl")
 include("data_manipulation/data_loader_MNIST.jl")
 include("constants.jl")
-include("VAE_MNIST.jl")
 
-using Glob
+function generate_image(vae::VAE)
+    # Sample a point in the latent space
+    z = randn(Float32, LATENT_DIM) |> DEVICE
+
+    # Use the decoder to generate an image
+    generated = vae.decoder(z)
+    println(size(generated))
+
+    # Reshape the generated tensor and convert it to an image
+    generated_image = cpu(generated[:,:,1,1])
+    generated_image = Images.colorview(Gray, generated_image)
+
+    return generated_image
+end
 
 function output_image(vae)
     # data_path = "data/data_resized/all_develop"
-    data_path = "data/MNIST"
+    data_path = "data/MNIST_small"
     loader = DataLoader(data_path, BATCH_SIZE) |> DEVICE
     images, labels = next_batch(loader)
     images = images |> DEVICE
@@ -50,20 +62,21 @@ function output_image(vae)
 
     loader.idx = 1
     Random.shuffle!(loader.filenames)
+
+    generated_image = generate_image(vae)
+    path_to_image = joinpath(OUTPUT_IMAGE_DIR, "$new_integer-generated_image.png")
+    save(path_to_image, generated_image)
+    println("Saved image to $path_to_image")
+
     return nothing
 end
 
 
 function main()
     # Load the model
-    model_path = "saved_models/MNIST_epoch_2_batch_END.jld2"
+    model_path = "saved_models/MNIST_epoch_3_batch_END.jld2"
     vae = load(model_path, "vae")
     vae = vae |> DEVICE
-
-    # encoder = create_encoder()
-    # mu_layer, logvar_layer = create_mu_logvar_layers()
-    # decoder = create_decoder()
-    # vae = VAE(encoder, mu_layer, logvar_layer, decoder) |> DEVICE
 
     output_image(vae)
     return nothing

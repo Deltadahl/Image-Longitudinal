@@ -1,80 +1,81 @@
-# VAE.jl
+# VAE_MNIST.jl
 using Flux
 using CUDA
+using Statistics
 include("constants.jl")
 
 #Define the encoder
 function create_encoder()
     return Chain(
-        Conv((3, 3), 1 => 32, stride = 2, pad = SamePad(), relu) |> DEVICE,
-        Conv((3, 3), 32 => 64, stride = 2, pad = SamePad(), relu) |> DEVICE,
-        Flux.flatten |> DEVICE,
-        Dense(7 * 7 * 64, 128, relu) |> DEVICE,
-    )
+        Conv((3, 3), 1 => 32, stride = 2, pad = SamePad(), leakyrelu),
+        # BatchNorm(32),
+        Dropout(0.1),
+        Conv((3, 3), 32 => 64, stride = 2, pad = SamePad(), leakyrelu),
+        # BatchNorm(64),
+        Dropout(0.1),
+        # Conv((3, 3), 64 => 64, stride = 1, pad = SamePad(), leakyrelu),
+        # BatchNorm(64),
+        # Dropout(0.2),
+        # Conv((3, 3), 64 => 64, stride = 1, pad = SamePad(), leakyrelu),
+        # BatchNorm(64),
+        # Dropout(0.2),
+        Flux.flatten,
+    ) |> DEVICE
 end
 
 # Define the mean and log variance layers
-function create_mu_logvar_layers()
-    return Dense(128, 16) |> DEVICE,  Dense(128, 16) |> DEVICE
+function create_μ_logvar_layers()
+    return Dense(7 * 7 * 64, LATENT_DIM) |> DEVICE,  Dense(7 * 7 * 64, LATENT_DIM) |> DEVICE
 end
 
 # Define the decoder
 function create_decoder()
     return Chain(
-        Dense(16, 7 * 7 * 64, relu) |> DEVICE,
+        Dense(LATENT_DIM, 7 * 7 * 64, relu),
         x -> reshape(x, (7, 7, 64, :)),
-        ConvTranspose((3, 3), 64 => 32, stride = 2, pad = SamePad(), relu) |> DEVICE,
-        ConvTranspose((3, 3), 32 => 1, stride = 2, pad = SamePad(), sigmoid) |> DEVICE,
-    )
+        # ConvTranspose((3, 3), 64 => 64, stride = 1, pad = SamePad(), leakyrelu),
+        # BatchNorm(64),
+        # Dropout(0.2),
+        ConvTranspose((3, 3), 64 => 64, stride = 1, pad = SamePad(), leakyrelu),
+        # BatchNorm(64),
+        Dropout(0.1),
+        ConvTranspose((3, 3), 64 => 32, stride = 2, pad = SamePad(), leakyrelu),
+        # BatchNorm(32),
+        Dropout(0.1),
+        ConvTranspose((3, 3), 32 => 1, stride = 2, pad = SamePad(), sigmoid),
+    ) |> DEVICE
 end
-
-# function create_encoder()
-#     return Chain(
-#         Flux.flatten |> DEVICE,
-#         Dense(784, 784, relu) |> DEVICE,
-#     )
-# end
-
-# # Define the mean and log variance layers
-# function create_mu_logvar_layers()
-#     return Dense(784, 784) |> DEVICE, Dense(784, 784) |> DEVICE
-# end
-
-# # Define the decoder
-# function create_decoder()
-#     return Chain(
-#         x -> reshape(x, (28, 28, 1, :)),
-#     )
-# end
 
 # Define the VAE
 struct VAE
     encoder::Any
-    mu_layer::Any
+    μ_layer::Any
     logvar_layer::Any
     decoder::Any
 end
 
-function reparametrize(mu, logvar)
-    r = randn(Float32, size(mu)) |> DEVICE
-    return mu #+ exp.(logvar ./ 2) .* r # TODO remove comment
+function reparametrize(μ, logvar)
+    r = randn(Float32, size(μ)) |> DEVICE
+    return μ .+ exp.(logvar ./ 2) .* r
 end
 
 function (m::VAE)(x)
     encoded = m.encoder(x)
-    mu = m.mu_layer(encoded)
+    μ = m.μ_layer(encoded)
     logvar = m.logvar_layer(encoded)
-    z = reparametrize(mu, logvar)
+    z = reparametrize(μ, logvar)
     decoded = m.decoder(z)
-    return decoded, mu, logvar
+    return decoded, μ, logvar
 end
 
-# Define the loss function
-function loss(x, m::VAE)
-    decoded, mu, logvar = m(x)
-    # reconstruction_loss = mse(reshape(decoded, :), reshape(x, :))
+function loss(m::VAE, x, y)
+    decoded, μ, logvar = m(x)
     reconstruction_loss = Flux.Losses.mse(decoded, x)
-    kl_divergence = -0.5 .* sum(1 .+ logvar .- mu .^ 2 .- exp.(logvar))
-    l = reconstruction_loss + 0.0 * kl_divergence # TODO remove Weight on kl
-    return l
+    # do the reconstruction loss for each image in the batch
+    # reconstruction_loss = sum(Flux.Losses.mse(decoded, x))
+    kl_divergence = -0.5 .* sum(1 .+ logvar .- μ .^ 2 .- exp.(logvar))
+    β = 1
+    return reconstruction_loss + β * kl_divergence
 end
+
+Flux.trainable(m::VAE) = (m.encoder, m.μ_layer, m.logvar_layer, m.decoder)

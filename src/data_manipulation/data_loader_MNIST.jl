@@ -24,8 +24,7 @@ function get_label(filename::String)
             return i
         end
     end
-    return 0
-    # error("Invalid filename: ", filename)
+    error("Invalid filename: ", filename)
 end
 
 function next_batch(loader::DataLoader)
