@@ -1,17 +1,16 @@
+# data_loader_OCT.jl
 using Images
 using FileIO
 using Random
 using Flux
-# using Plots
 
-mutable struct DataLoader
+struct DataLoader
     dir::String
     batch_size::Int
     filenames::Vector{String}
-    idx::Int
 end
 
-function augment_dataset(filenames)
+function undersample_dataset(filenames)
     # Create a dictionary to hold the filenames for each class
     classes = Dict("CNV" => [], "DME" => [], "DRUSEN" => [], "NORMAL" => [])
 
@@ -25,40 +24,37 @@ function augment_dataset(filenames)
             push!(classes["DRUSEN"], filename)
         elseif startswith(filename, "NORMAL")
             push!(classes["NORMAL"], filename)
+        else
+            error("Invalid filename: ", filename)
         end
     end
 
-    # Find the size of the largest class
-    max_size = maximum(length(v) for v in values(classes))
+    # Find the size of the smallest class
+    min_size = minimum(length(v) for v in values(classes))
 
-    # Create an array to hold the augmented filenames
-    augmented_filenames = []
+    # Create an array to hold the undersampled filenames
+    undersampled_filenames = []
 
-    # Upsample the minority classes
-    for (class, filenames) in classes
-        while length(filenames) < max_size
-            # Duplicate filenames from the start of the array
-            push!(filenames, filenames...)
-        end
+    # Undersample the majority classes
+    for (class, class_filenames) in classes
+        # Randomly select min_size elements from class_filenames
+        random_indices = randperm(length(class_filenames))[1:min_size]
+        selected_filenames = class_filenames[random_indices]
 
-        # If the number of filenames is now greater than max_size, truncate the array
-        if length(filenames) > max_size
-            filenames = filenames[1:max_size]
-        end
-
-        # Add the filenames for this class to the augmented_filenames array
-        append!(augmented_filenames, filenames)
+        # Add the selected filenames for this class to the undersampled_filenames array
+        append!(undersampled_filenames, selected_filenames)
     end
 
-    return augmented_filenames
+    return undersampled_filenames
 end
+
 
 
 function DataLoader(dir::String, batch_size::Int)
     filenames = readdir(dir)
-    filenames = augment_dataset(filenames)
+    filenames = undersample_dataset(filenames) # TODO add this, and change so that the dataloder is reinitialized after each epoch
     Random.shuffle!(filenames)
-    return DataLoader(dir, batch_size, filenames, 1)
+    return DataLoader(dir, batch_size, filenames)
 end
 
 function get_label(filename::String)
@@ -74,10 +70,10 @@ function get_label(filename::String)
         error("Invalid filename: ", filename)
     end
 end
+Base.iterate(loader::DataLoader, state=1) = state > length(loader.filenames) ? nothing : (next_batch(loader, state), state + loader.batch_size)
 
-function next_batch(loader::DataLoader)
-    start_idx = loader.idx
-    end_idx = min(loader.idx + loader.batch_size - 1, length(loader.filenames))
+function next_batch(loader::DataLoader, start_idx)
+    end_idx = min(start_idx + loader.batch_size - 1, length(loader.filenames))
 
     if start_idx > end_idx
         return nothing, nothing
@@ -87,13 +83,13 @@ function next_batch(loader::DataLoader)
     images = []
     labels = []
 
-    for i in 1:batch_size
-        filename = loader.filenames[start_idx + i - 1]
+    for i in start_idx:end_idx
+        filename = loader.filenames[i]
         image = load(joinpath(loader.dir, filename))
 
         # With a 50% chance, mirror the image around the vertical axis
         if rand() < 0.5
-            image = flipdim(image, 2)
+            reverse!(image, dims=2)
         end
 
         # Convert the image to grayscale and then to Float32
@@ -102,9 +98,12 @@ function next_batch(loader::DataLoader)
         image = reshape(image, size(image)..., 1, 1)
         push!(images, image)
         push!(labels, get_label(filename))
+
+        # Explicitly delete the image variable to free up memory
+        finalize(image)
     end
 
-    loader.idx += batch_size
+    # loader.idx += batch_size
     # Concatenate all images along the 4th dimension to form a single batch
     images = cat(images..., dims=4)
     labels = Flux.onehotbatch(labels, 1:4)

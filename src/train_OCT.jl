@@ -1,4 +1,4 @@
-# train.jl
+# train_OCT.jl
 using Flux
 using Flux.Optimise
 using Flux: params
@@ -6,6 +6,7 @@ using JLD2, FileIO
 using Glob
 using Printf
 using ProgressMeter
+using CUDA
 include("data_manipulation/data_loader_OCT.jl")
 include("VAE_OCT.jl")
 
@@ -18,14 +19,15 @@ end
 
 
 function main()
-    epochs = 5
+    epochs = 3
 
-    load_model = false
-    load_model_nr = 7
+    load_model = true
+    load_model_nr = 1
     model_name = "OCT_epoch_$load_model_nr.jld2"
-    data_path = "data/data_resized/all"
+    data_path = "data/data_resized/all_train_256"
 
-    loader = DataLoader(data_path, BATCH_SIZE) |> DEVICE
+    # loader = DataLoader(data_path, BATCH_SIZE) |> DEVICE
+    loader = DataLoader(data_path, BATCH_SIZE)
 
     if load_model
         vae = load("saved_models/" * model_name, "vae") |> DEVICE
@@ -47,9 +49,8 @@ function main()
         loss_list_kl = []
         println("Epoch: $epoch/$epochs")
         batch_nr = 0
-        while true
+        for (images, labels) in loader
             batch_nr += 1
-            images, labels = next_batch(loader)
             if images === nothing
                 break
             end
@@ -58,13 +59,18 @@ function main()
 
             train!(vae, images, opt, ps, labels, loss_list_rec, loss_list_kl)
 
-            if batch_nr % 500 == 0
+            Δbatch = 100
+            if batch_nr % Δbatch == 0
                 println("Batch: $batch_nr")
-                rec_loss = sum(loss_list_rec)/length(loss_list_rec)
-                kl_loss = sum(loss_list_kl)/length(loss_list_kl)
+                list_len = length(loss_list_rec)
+                rec_loss = sum(loss_list_rec[list_len-Δbatch+1:end]) / Δbatch
+                kl_loss = sum(loss_list_kl[list_len-Δbatch+1:end]) / Δbatch
                 epoch_loss = rec_loss + kl_loss
                 println("Loss tot: $(Printf.@sprintf("%.6f", epoch_loss))\nLoss rec: $(Printf.@sprintf("%6f", rec_loss))\nLoss kl:  $(Printf.@sprintf("%.6f", kl_loss))")
+                # CUDA.reclaim() # TODO test if this helps with memory
             end
+
+            # CUDA.reclaim()
         end
         println("--- Epoch $(epoch) finished ---")
         println()
@@ -82,8 +88,8 @@ function main()
         println("Loss tot: $(Printf.@sprintf("%.6f", epoch_loss))\nLoss rec: $(Printf.@sprintf("%.6f", rec_loss))\nLoss kl:  $(Printf.@sprintf("%.6f", kl_loss))")
 
         # Reset the loader for the next epoch
-        loader.idx = 1
-        Random.shuffle!(loader.filenames)
+        loader = DataLoader(data_path, BATCH_SIZE)
+
         if load_model
             save_nr = load_model_nr + epoch
         else
@@ -93,6 +99,7 @@ function main()
         save(save_path, "vae", vae)
         println("saved model to $save_path")
         println()
+        CUDA.reclaim()
     end
 
     return nothing

@@ -1,11 +1,23 @@
-using Flux
+using Images
+using FileIO
 
-x = ones(Float32, 2,2,1,3)
-y = zeros(Float32, 2,2,1,3)
-println("x: $x")
-println("y: $y")
+# Set the source and destination directories
+src_dir = "data/data_resized/all_train"
+dest_dir = "data/data_resized/all_train_256"
 
-x[1,1,1,2] = 2f0
-y[1,1,1,2] = 2f0
+# Create the destination directory if it does not exist
+!isdir(dest_dir) && mkdir(dest_dir)
 
-println(Flux.Losses.mse(x, y))
+# Loop over all .jpeg files in the source directory
+for filename in readdir(src_dir)
+    if endswith(filename, ".jpeg")
+        # Load the image
+        img = load(joinpath(src_dir, filename))
+
+        # Resize the image
+        resized_img = imresize(img, (256, 256))
+
+        # Save the resized image to the destination directory
+        save(joinpath(dest_dir, filename), resized_img)
+    end
+end

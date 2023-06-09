@@ -2,7 +2,7 @@
 
 julia_version = "1.9.0"
 manifest_format = "2.0"
-project_hash = "b1ebb60a7ee34924f73a990d52dfb3c2ad21b2e4"
+project_hash = "e2a077b2c935050c99861155fa188db1b57ff8be"
 
 [[deps.ATK_jll]]
 deps = ["Artifacts", "Glib_jll", "JLLWrappers", "Libdl"]
@@ -21,10 +21,10 @@ weakdeps = ["ChainRulesCore"]
     AbstractFFTsChainRulesCoreExt = "ChainRulesCore"
 
 [[deps.Accessors]]
-deps = ["Compat", "CompositionsBase", "ConstructionBase", "Dates", "InverseFunctions", "LinearAlgebra", "MacroTools", "Requires", "Test"]
-git-tree-sha1 = "2b301c2388067d655fe5e4ca6d4aa53b61f895b4"
+deps = ["CompositionsBase", "ConstructionBase", "Dates", "InverseFunctions", "LinearAlgebra", "MacroTools", "Requires", "Test"]
+git-tree-sha1 = "954634616d5846d8e216df1298be2298d55280b2"
 uuid = "7d9f7c33-5ae7-4f3b-8dc6-eff91059b697"
-version = "0.1.31"
+version = "0.1.32"
 
     [deps.Accessors.extensions]
     AccessorsAxisKeysExt = "AxisKeys"
@@ -196,9 +196,9 @@ version = "0.2.2"
 
 [[deps.ChainRules]]
 deps = ["Adapt", "ChainRulesCore", "Compat", "Distributed", "GPUArraysCore", "IrrationalConstants", "LinearAlgebra", "Random", "RealDot", "SparseArrays", "Statistics", "StructArrays"]
-git-tree-sha1 = "0266ee4ffeeac8405ab07c49252c144616fe825d"
+git-tree-sha1 = "82e2d776be8bef478792d6cba65b06b16952f8ba"
 uuid = "082447d4-558c-5d27-93f4-14fc19e9eca2"
-version = "1.49.1"
+version = "1.50.0"
 
 [[deps.ChainRulesCore]]
 deps = ["Compat", "LinearAlgebra", "SparseArrays"]
@@ -784,9 +784,9 @@ uuid = "92d709cd-6900-40b7-9082-c6be49f344b6"
 version = "0.2.2"
 
 [[deps.IterTools]]
-git-tree-sha1 = "fa6287a4469f5e048d763df38279ee729fbd44e5"
+git-tree-sha1 = "4ced6667f9974fc5c5943fa5e2ef1ca43ea9e450"
 uuid = "c8e1da08-722c-5040-9ed9-7db0dc04731e"
-version = "1.4.0"
+version = "1.8.0"
 
 [[deps.IteratorInterfaceExtensions]]
 git-tree-sha1 = "a3f24677c21f5bbe9d2a714f95dcd58337fb2856"
@@ -825,9 +825,9 @@ version = "2.1.91+0"
 
 [[deps.JuliaFormatter]]
 deps = ["CSTParser", "CommonMark", "DataStructures", "Glob", "Pkg", "PrecompileTools", "Tokenize"]
-git-tree-sha1 = "c7a9587f2fbac4983c9b37a3a716dceaa08fdb06"
+git-tree-sha1 = "60567b51bd9e1e19ae2fd8a54dcd6bc5994727f0"
 uuid = "98e50ef6-434e-11e9-1051-2b60c6c9e899"
-version = "1.0.33"
+version = "1.0.34"
 
 [[deps.JuliaVariables]]
 deps = ["MLStyle", "NameResolution"]
@@ -1044,6 +1044,12 @@ git-tree-sha1 = "1130dbe1d5276cb656f6e1094ce97466ed700e5a"
 uuid = "626554b9-1ddb-594c-aa3c-2596fe9399a5"
 version = "0.7.2"
 
+[[deps.Metalhead]]
+deps = ["Artifacts", "BSON", "CUDA", "ChainRulesCore", "Flux", "Functors", "JLD2", "LazyArtifacts", "MLUtils", "NNlib", "NNlibCUDA", "PartialFunctions", "Random", "Statistics"]
+git-tree-sha1 = "10e37438885b1e0ea25c5696cd6cf564f570cc10"
+uuid = "dbeba491-748d-5e0e-a39e-b530a07fa0cc"
+version = "0.8.0"
+
 [[deps.MicroCollections]]
 deps = ["BangBang", "InitialValues", "Setfield"]
 git-tree-sha1 = "629afd7d10dbc6935ec59b32daeb33bc4460a42e"
@@ -1212,6 +1218,11 @@ git-tree-sha1 = "a5aef8d4a6e8d81f171b2bd4be5265b01384c74c"
 uuid = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
 version = "2.5.10"
 
+[[deps.PartialFunctions]]
+git-tree-sha1 = "b3901ea034cfd8aae57a2fa0dde0b0ea18bad1cb"
+uuid = "570af359-4316-4cb7-8c74-252c00c2016b"
+version = "1.1.1"
+
 [[deps.Pixman_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "b4f5d02549a10e20780a24fce72bea96b6329e29"
@@ -1313,9 +1324,9 @@ version = "0.3.2"
 
 [[deps.Ratios]]
 deps = ["Requires"]
-git-tree-sha1 = "6d7bb727e76147ba18eed998700998e17b8e4911"
+git-tree-sha1 = "1342a47bf3260ee108163042310d26f2be5ec90b"
 uuid = "c84ed2f1-dad5-54f0-aa8e-dbefe2724439"
-version = "0.4.4"
+version = "0.4.5"
 weakdeps = ["FixedPointNumbers"]
 
     [deps.Ratios.extensions]

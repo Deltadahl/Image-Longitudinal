@@ -3,39 +3,144 @@ using Flux
 using CUDA
 using Statistics
 using Zygote
+using Metalhead
 include("constants.jl")
 
-function create_encoder()
+using Flux
+
+function conv_block(ch_in, ch_out)
+    layers = Chain(
+        Conv((3, 3), ch_in=>ch_out, pad=(1,1), stride=(2,2)),
+        BatchNorm(ch_out, relu),
+        Conv((3, 3), ch_out=>ch_out, pad=(1,1)),
+        BatchNorm(ch_out)
+    ) |> DEVICE
+    shortcut = Chain(
+        Conv((1, 1), ch_in=>ch_out, stride=(2,2)),
+        BatchNorm(ch_out)
+    ) |> DEVICE
+    return (layers, shortcut)
+end
+
+function identity_block(ch_in, ch_out)
+    layers = Chain(
+        Conv((3, 3), ch_in=>ch_out, pad=(1,1)),
+        BatchNorm(ch_out, relu),
+        Conv((3, 3), ch_out=>ch_out, pad=(1,1)),
+        BatchNorm(ch_out)
+    ) |> DEVICE
+    return (layers, identity)
+end
+
+function res_block(x, ch_in, ch_out, project::Bool=false)
+    if project
+        f, g = conv_block(ch_in, ch_out)
+    else
+        f, g = identity_block(ch_in, ch_out)
+    end
     return Chain(
-        Conv((3, 3), 1 => 32, stride = 2, pad = SamePad(), relu) |> DEVICE,
-        # BatchNorm(32, relu) |> DEVICE,
-        Conv((3, 3), 32 => 64, stride = 2, pad = SamePad(), relu) |> DEVICE,
-        # BatchNorm(64, relu) |> DEVICE,
-        Conv((3, 3), 64 => 128, stride = 2, pad = SamePad(), relu) |> DEVICE,
-        # BatchNorm(128, relu) |> DEVICE,
-        Conv((3, 3), 128 => 256, stride = 2, pad = SamePad(), relu) |> DEVICE,
-        # BatchNorm(256, relu) |> DEVICE,
-        Flux.flatten |> DEVICE,
-        # Dense(31 * 32 * 256, 1024, relu) |> DEVICE,
-    )
+        x -> (f(x) .+ g(x)),
+        relu
+    ) |> DEVICE
+end
+
+function res_layer(n, ch_in, ch_out)
+    res_blocks = [res_block(res_block, ch_in, ch_out, true)]
+    append!(res_blocks, [res_block(res_block, ch_out, ch_out) for _ in 1:(n-1)])
+    return Chain(res_blocks...) |> DEVICE
+end
+
+function ResNet34()
+    return Chain(
+        Conv((7, 7), 1=>64, pad=(3,3), stride=(2,2)),
+        BatchNorm(64, relu),
+        MaxPool((3,3), stride=(2,2)),
+        res_layer(3, 64, 64),
+        res_layer(4, 64, 128),
+        res_layer(6, 128, 256),
+        res_layer(3, 256, 512),
+        AdaptiveMeanPool((1,1)),
+        Flux.flatten,
+        Dense(512, OUTPUT_RESNET),
+        relu
+    ) |> DEVICE
+end
+
+
+
+
+function create_encoder()
+    # return Chain(
+    #     Conv((3, 3), 1 => 32, stride = 2, pad = SamePad(), relu) |> DEVICE,
+    #     # BatchNorm(32, relu) |> DEVICE,
+    #     Conv((3, 3), 32 => 64, stride = 2, pad = SamePad(), relu) |> DEVICE,
+    #     # BatchNorm(64, relu) |> DEVICE,
+    #     Conv((3, 3), 64 => 128, stride = 2, pad = SamePad(), relu) |> DEVICE,
+    #     # BatchNorm(128, relu) |> DEVICE,
+    #     Conv((3, 3), 128 => 256, stride = 2, pad = SamePad(), relu) |> DEVICE,
+    #     # BatchNorm(256, relu) |> DEVICE,
+    #     Flux.flatten |> DEVICE,
+    #     # Dense(31 * 32 * 256, 1024, relu) |> DEVICE,
+    # )
+    # return Chain(
+    #     Conv((3, 3), 1 => 32, stride = 2, pad = SamePad(), leakyrelu),
+    #     Conv((3, 3), 32 => 64, stride = 2, pad = SamePad(), leakyrelu),
+    #     Conv((3, 3), 64 => 128, stride = 2, pad = SamePad(), leakyrelu),
+    #     Conv((3, 3), 128 => 256, stride = 2, pad = SamePad(), leakyrelu),
+    #     Flux.flatten,
+    #     Dense(16 * 16 * 256, ouput_resnet, leakyrelu),
+    # ) |> DEVICE
+
+
+    # block_type = Metalhead.bottleneck
+    # block_type = Metalhead.basicblock
+    # # block_repeats = [3, 4, 6, 2]
+    # block_repeats = [2, 2, 2, 2]
+
+    # return Metalhead.resnet(block_type, block_repeats,
+    #     imsize = (512, 512),
+    #     inchannels = 1,
+    #     nclasses = ouput_resnet) |> DEVICE
+
+    # return ResNet(34; inchannels = 1, nclasses = ouput_resnet) |> DEVICE
+
+    return ResNet34() |> DEVICE
 end
 
 function create_μ_logvar_layers()
-    return Dense(31 * 32 * 256, LATENT_DIM) |> DEVICE, Dense(31 * 32 * 256, LATENT_DIM) |> DEVICE
+    return Dense(OUTPUT_RESNET, LATENT_DIM) |> DEVICE, Dense(OUTPUT_RESNET, LATENT_DIM) |> DEVICE
 end
 
 function create_decoder()
+    # return Chain(
+    #     Dense(LATENT_DIM, 16 * 16 * 32, relu),
+    #     x -> reshape(x, (16, 16, 32, :)),
+    #     ConvTranspose((3, 3), 32 => 256, stride = 1, pad = SamePad(), leakyrelu),
+    #     ConvTranspose((3, 3), 256 => 128, stride = 2, pad = SamePad(), leakyrelu),
+    #     ConvTranspose((3, 3), 128 => 64, stride = 2, pad = SamePad(), leakyrelu),
+    #     ConvTranspose((3, 3), 64 => 32, stride = 2, pad = SamePad(), leakyrelu),
+    #     ConvTranspose((3, 3), 32 => 1, stride = 2, pad = SamePad(), sigmoid),
+    # ) |> DEVICE
+
     return Chain(
-        Dense(LATENT_DIM, 31 * 32 * 256, relu) |> DEVICE,
-        x -> reshape(x, (31, 32, 256, :)),
-        ConvTranspose((3, 3), 256 => 128, stride = 2, pad = SamePad(), relu) |> DEVICE,
-        BatchNorm(128, relu) |> DEVICE,
-        ConvTranspose((3, 3), 128 => 64, stride = 2, pad = SamePad(), relu) |> DEVICE,
-        BatchNorm(64, relu) |> DEVICE,
-        ConvTranspose((3, 3), 64 => 32, stride = 2, pad = SamePad(), relu) |> DEVICE,
-        BatchNorm(32, relu) |> DEVICE,
-        ConvTranspose((3, 3), 32 => 1, stride = 2, pad = SamePad(), sigmoid) |> DEVICE,
-    )
+        Dense(LATENT_DIM, 8 * 8 * 512, leakyrelu),
+        x -> reshape(x, (8, 8, 512, :)),
+        ConvTranspose((3, 3), 512 => 256, stride = 2, pad = SamePad(), leakyrelu),
+        ConvTranspose((3, 3), 256 => 128, stride = 2, pad = SamePad(), leakyrelu),
+        ConvTranspose((3, 3), 128 => 64, stride = 2, pad = SamePad(), leakyrelu),
+        ConvTranspose((3, 3), 64 => 32, stride = 2, pad = SamePad(), leakyrelu),
+        ConvTranspose((3, 3), 32 => 1, stride = 2, pad = SamePad(), sigmoid),
+    ) |> DEVICE
+
+    # return Chain(
+    #     Dense(LATENT_DIM, 8 * 8 * 512, leakyrelu),
+    #     x -> reshape(x, (8, 8, 512, :)),
+    #     ConvTranspose((3, 3), 512 => 256, stride = 2, pad = SamePad(), leakyrelu),
+    #     ConvTranspose((3, 3), 256 => 128, stride = 2, pad = SamePad(), leakyrelu),
+    #     ConvTranspose((3, 3), 128 => 64, stride = 2, pad = SamePad(), leakyrelu),
+    #     ConvTranspose((3, 3), 64 => 32, stride = 2, pad = SamePad(), leakyrelu),
+    #     ConvTranspose((3, 3), 32 => 1, stride = 2, pad = SamePad(), sigmoid),
+    # ) |> DEVICE
 end
 
 struct VAE

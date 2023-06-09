@@ -44,6 +44,7 @@ function next_batch(loader::DataLoader)
         image = load(joinpath(loader.dir, filename))
         # Convert the image to grayscale and then to Float32
         image = Float32.(Gray.(image))
+
         # Reshape the image to the format (height, width, channels, batch size)
         image = reshape(image, size(image)..., 1, 1)
         push!(images, image)

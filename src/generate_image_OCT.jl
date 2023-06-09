@@ -25,9 +25,9 @@ end
 
 function output_image(vae)
     # data_path = "data/data_resized/all_develop"
-    data_path = "data/data_resized/all"
-    loader = DataLoader(data_path, 2) |> DEVICE # TODO chagne to 1
-    images, labels = next_batch(loader)
+    data_path = "data/data_resized/all_develop_256"
+    loader = DataLoader(data_path, BATCH_SIZE)
+    images, labels = first(loader)
     images = images |> DEVICE
 
     # reconstructed, _, _ = vae(images)
@@ -61,9 +61,6 @@ function output_image(vae)
     save(path_to_image, reconstructed_image)
     save(path_to_original_image, original_image)
     println("Saved image to $path_to_image")
-
-    loader.idx = 1
-    Random.shuffle!(loader.filenames)
 
     generated_image = generate_image(vae)
     path_to_image = joinpath(OUTPUT_IMAGE_DIR, "generated_image_$new_integer.png")
