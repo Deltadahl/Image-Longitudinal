@@ -62,7 +62,7 @@ function ResNet34()
         AdaptiveMeanPool((1,1)),
         Flux.flatten,
         Dense(512, OUTPUT_RESNET),
-        relu
+        gelu
     ) |> DEVICE
 end
 
@@ -122,25 +122,26 @@ function create_decoder()
     #     ConvTranspose((3, 3), 32 => 1, stride = 2, pad = SamePad(), sigmoid),
     # ) |> DEVICE
 
-    return Chain(
-        Dense(LATENT_DIM, 8 * 8 * 512, leakyrelu),
-        x -> reshape(x, (8, 8, 512, :)),
-        ConvTranspose((3, 3), 512 => 256, stride = 2, pad = SamePad(), leakyrelu),
-        ConvTranspose((3, 3), 256 => 128, stride = 2, pad = SamePad(), leakyrelu),
-        ConvTranspose((3, 3), 128 => 64, stride = 2, pad = SamePad(), leakyrelu),
-        ConvTranspose((3, 3), 64 => 32, stride = 2, pad = SamePad(), leakyrelu),
-        ConvTranspose((3, 3), 32 => 1, stride = 2, pad = SamePad(), sigmoid),
-    ) |> DEVICE
-
     # return Chain(
-    #     Dense(LATENT_DIM, 8 * 8 * 512, leakyrelu),
-    #     x -> reshape(x, (8, 8, 512, :)),
+    #     Dense(LATENT_DIM, 8 * 8 * 32, leakyrelu),
+    #     x -> reshape(x, (8, 8, 32, :)),
+    #     ConvTranspose((3, 3), 32 => 512, stride = 1, pad = SamePad(), leakyrelu),
     #     ConvTranspose((3, 3), 512 => 256, stride = 2, pad = SamePad(), leakyrelu),
     #     ConvTranspose((3, 3), 256 => 128, stride = 2, pad = SamePad(), leakyrelu),
     #     ConvTranspose((3, 3), 128 => 64, stride = 2, pad = SamePad(), leakyrelu),
     #     ConvTranspose((3, 3), 64 => 32, stride = 2, pad = SamePad(), leakyrelu),
     #     ConvTranspose((3, 3), 32 => 1, stride = 2, pad = SamePad(), sigmoid),
     # ) |> DEVICE
+    return Chain(
+        Dense(LATENT_DIM, 8 * 8 * 32, leakyrelu),
+        x -> reshape(x, (8, 8, 32, :)),
+        ConvTranspose((3, 3), 32 => 512, stride = 2, pad = SamePad(), leakyrelu),
+        ConvTranspose((3, 3), 512 => 256, stride = 2, pad = SamePad(), leakyrelu),
+        ConvTranspose((3, 3), 256 => 128, stride = 2, pad = SamePad(), leakyrelu),
+        ConvTranspose((3, 3), 128 => 64, stride = 2, pad = SamePad(), leakyrelu),
+        ConvTranspose((3, 3), 64 => 32, stride = 2, pad = SamePad(), leakyrelu),
+        ConvTranspose((3, 3), 32 => 1, stride = 2, pad = SamePad(), sigmoid),
+    ) |> DEVICE
 end
 
 struct VAE

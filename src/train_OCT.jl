@@ -21,10 +21,10 @@ end
 function main()
     epochs = 3
 
-    load_model = true
-    load_model_nr = 1
+    load_model = false
+    load_model_nr = 3
     model_name = "OCT_epoch_$load_model_nr.jld2"
-    data_path = "data/data_resized/all_train_256"
+    data_path = "data/data_resized/all_train_512"
 
     # loader = DataLoader(data_path, BATCH_SIZE) |> DEVICE
     loader = DataLoader(data_path, BATCH_SIZE)
