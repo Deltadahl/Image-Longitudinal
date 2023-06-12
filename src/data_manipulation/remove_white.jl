@@ -50,12 +50,41 @@ end
         reduce(.|, corner_masks)
     end
 
+    # Create a copy of the final_mask to avoid altering it during iteration
+    new_mask = copy(final_mask)
+
+    # check for mask pixels that cannot go straight up or down
+    for j in 1:size(final_mask, 2)
+        for i in 1:size(final_mask, 1)
+            if final_mask[i, j] && !check_vertical_path(final_mask, i, j)
+                new_mask[i, j] = false
+            end
+        end
+    end
+
+    # create a final expanded mask
+    expanded_mask = copy(new_mask)
+    n = 2
+    for j in 1:size(new_mask, 2)
+        for i in 1:size(new_mask, 1)
+            if new_mask[i, j]
+                # expand the mask in all directions by n pixels
+                expanded_mask[max(i-n, 1):min(i+n, end), max(j-n, 1):min(j+n, end)] .= true
+            end
+        end
+    end
+
+    return expanded_mask, img_array
+end
+
 @everywhere function process_and_save_file(file, base_path_modified, subfolder)
     img_path = file
     img = load(img_path)
     mask, img_array = process_image(img)
     modified = copy(img_array)
-    darkest_pixels_avg = median(vec(img_array[.!mask]))
+    not_masked_pixels = sort(vec(img_array[.!mask]))
+    darkest_pixels_avg = maximum(not_masked_pixels[1:div(end, 2)])
+    # darkest_pixels_avg = median(vec(img_array[.!mask]))
     modified[mask] .= darkest_pixels_avg
     save_path = joinpath(base_path_modified, subfolder, basename(file))
     mkpath(dirname(save_path))
@@ -70,10 +99,10 @@ function main()
         "test/DRUSEN",
         "test/CNV",
         "test/DME",
-        # "train/NORMAL",
-        # "train/DRUSEN",
-        # "train/DME",
-        # "train/CNV",
+        "train/NORMAL",
+        "train/DRUSEN",
+        "train/DME",
+        "train/CNV",
     ]
     for subfolder in subfolders
         println("Processing $subfolder")
@@ -84,7 +113,7 @@ function main()
         # Use @distributed to perform the file processing in parallel.
         # Note that we've modified the loop to use `pmap` function which is better for IO bounded operations.
         # The function to be applied to each file and the collection of files are passed as arguments to `pmap`.
-        pmap(file -> process_and_save_file(file, base_path_modified, subfolder), files)
+        @time pmap(file -> process_and_save_file(file, base_path_modified, subfolder), files)
     end
 end
 
