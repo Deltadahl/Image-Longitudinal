@@ -1,2 +1,4 @@
-x = [1,2,3]
-print(x[end])
+using Distributed
+
+println("Total processes: ", nprocs())
+println("Worker processes: ", nworkers())

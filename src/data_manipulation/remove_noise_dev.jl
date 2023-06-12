@@ -1,21 +1,18 @@
 using Distributed
+using BM3DDenoise
+using ImageIO
+using FileIO
+using Images
+using Glob
 
 # Add the number of cores to use
 addprocs(16)
 
 @everywhere begin
-    using BM3DDenoise
-    using ImageIO
-    using FileIO
-    using Images
-    using Glob
-    using Printf
-
     # Function to denoise the image
     function denoise_image(img::AbstractArray, noise_variance::Float64)::AbstractArray
         img_array = float(channelview(img))  # Convert image to 2D array
         img_denoised = bm3d(img_array, noise_variance)  # Apply BM3D algorithm
-        img_denoised = (img_denoised .- minimum(img_denoised)) ./ (maximum(img_denoised) - minimum(img_denoised)) # Normalize
         img_denoised = colorview(Gray, img_denoised)  # Convert back to grayscale image
         return img_denoised
     end
@@ -36,16 +33,18 @@ end
 
 # Function to perform the main task
 function main()
-    const base_path = "data/CellData/OCT_white_to_black"
-    const base_path_modified = "data/CellData/OCT_mb3d"
-    const noise_variance = 0.5
-    const subfolders = [
-        "DEVELOP"
-        # "test/NORMAL",
+    base_path = "data/CellData/OCT_white_to_black"
+    base_path_modified = "data/CellData/OCT_mb3d"
+    noise_variance = 0.4
+    subfolders = [
+        # "DEVELOP"
+        "test/NORMAL",
         # "test/DRUSEN",
         # "test/DME",
         # "test/CNV",
     ]
+
+    println("Starting the main task")
 
     # Flatten the file structure
     all_files = [glob("*.jpeg", joinpath(base_path, subfolder)) for subfolder in subfolders]
@@ -53,14 +52,11 @@ function main()
 
     # Run the processing in parallel and calculate time for each process
     @sync @distributed for file in all_files
+        time_start = time()
         process_file(file, noise_variance, base_path, base_path_modified)
-        println("Finished processing $file")
+        time_end = time()
+        println("Time: $((time_end - time_start)/60)min, File: $file")
     end
 end
 
-# Calculate the total time and start the main task
-total_time_start = time()
 main()
-total_time_end = time()
-elapsed_total_time = (total_time_end - total_time_start) / 3600  # convert to minutes
-println("Total time for all processes: ", @sprintf("%.2f", elapsed_total_time), " hours")
