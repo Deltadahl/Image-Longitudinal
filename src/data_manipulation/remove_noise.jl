@@ -22,36 +22,44 @@ addprocs(16)
 
     # Function to process each file
     function process_file(file::String, noise_variance::Float64, base_path::String, base_path_modified::String)
-        img = load(file)
-        img_denoised = denoise_image(img, noise_variance)
-
         # Maintain the subfolder structure in the new path
         relative_path = relpath(file, base_path)
         save_path = joinpath(base_path_modified, relative_path)
-        mkpath(dirname(save_path))
 
+        # Check if the file already exists in the output directory. If it does, then continue with the next iteration.
+        if isfile(save_path)
+            println("File already exists -> Skipping.")
+            return
+        end
+
+        img = load(file)
+        img_denoised = denoise_image(img, noise_variance)
+
+        mkpath(dirname(save_path))
         save(save_path, img_denoised)
     end
 end
 
-# Function to perform the main task
 function main()
-    const base_path = "data/CellData/OCT_white_to_black"
-    const base_path_modified = "data/CellData/OCT_mb3d"
-    const noise_variance = 0.5
-    const subfolders = [
-        "DEVELOP"
+    base_path = "data/CellData/OCT_white_to_black"
+    base_path_modified = "data/CellData/OCT_mb3d"
+    noise_variance = 0.3
+    subfolders = [
         # "test/NORMAL",
-        # "test/DRUSEN",
+        "test/DRUSEN",
         # "test/DME",
         # "test/CNV",
+        # "train/NORMAL",
+        # "train/DRUSEN",
+        # "train/DME",
+        # "train/CNV",
     ]
 
+    println("Starting the main task")
     # Flatten the file structure
     all_files = [glob("*.jpeg", joinpath(base_path, subfolder)) for subfolder in subfolders]
     all_files = vcat(all_files...)  # Concatenate all the files into a single array
 
-    # Run the processing in parallel and calculate time for each process
     @sync @distributed for file in all_files
         process_file(file, noise_variance, base_path, base_path_modified)
         println("Finished processing $file")
