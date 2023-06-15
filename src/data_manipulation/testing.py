@@ -1,49 +1,78 @@
-import os
+import cv2
 import numpy as np
-from skimage import io, img_as_float, img_as_ubyte, color
-import time
+from scipy import optimize
+from skimage import img_as_ubyte, morphology, filters
+from skimage.color import rgb2gray
+from skimage.restoration import denoise_nl_means, estimate_sigma
+from scipy.signal import medfilt
+from scipy.stats import pearsonr
 
-import bm3d
+def quadratic(x, a, b, c):
+    return a * x**2 + b * x + c
 
-def bm3d_denoise(input_image_path, output_image_path):
-    # Read the noisy image
-    noisy_image = img_as_float(io.imread(input_image_path))
+def linear(x, a, b):
+    return a * x + b
 
-    # Convert the image to grayscale if it's not
-    if len(noisy_image.shape) > 2:
-        noisy_image = color.rgb2gray(noisy_image)
+def flatten_image(input_path, output_path):
+    # Load the image
+    image = cv2.imread(input_path)
 
-    # Perform BM3D denoising
-    denoised_image = bm3d.bm3d(noisy_image, sigma_psd=0.3, stage_arg=bm3d.BM3DStages.ALL_STAGES)
+    # Convert the image to grayscale
+    gray = rgb2gray(image)
+    gray = img_as_ubyte(gray)
 
-    # Normalize the denoised image
-    denoised_image = (denoised_image - np.min(denoised_image)) / (np.max(denoised_image) - np.min(denoised_image))
+    # Thresholding
+    threshold = filters.threshold_otsu(gray)
+    binary = gray > threshold
+    binary = binary.astype(float)
 
-    # Convert the normalized image data to 8-bit format
-    denoised_image = img_as_ubyte(denoised_image)
+    # Median filtering
+    binary = medfilt(binary, kernel_size=3)
 
-    # make path if it doesn't exist, then save image
-    if not os.path.exists(os.path.dirname(output_image_path)):
-        os.makedirs(os.path.dirname(output_image_path))
+    # Morphological closing and opening
+    binary = morphology.closing(binary)
+    binary = morphology.opening(binary)
 
-    # saving image
-    io.imsave(output_image_path, denoised_image)
+    # Calculate middle and bottom points
+    y, x = np.where(binary)
+    x_values, index = np.unique(x, return_inverse=True)
+    middle_points = np.bincount(index, weights=y) / np.bincount(index)
+    # Calculate bottom points
+    indices = np.r_[np.unique(index, return_index=True)[1], len(index)]
+    indices = indices[indices < len(y)]  # Ensure indices do not exceed the length of y
+    bottom_points = np.maximum.reduceat(y, indices)
+    # bottom_points = np.maximum.reduceat(y, np.r_[np.unique(index, return_index=True)[1], len(index)])
 
-def process_directory(input_directory, output_directory):
-    # Loop over all files in the input directory
-    for filename in os.listdir(input_directory):
-        # Check if the file is a JPEG image
-        if filename.lower().endswith(".jpeg"):
-            # Construct full input and output paths
-            input_path = os.path.join(input_directory, filename)
-            output_path = os.path.join(output_directory, filename)
-            # Perform BM3D denoising and save the output
-            bm3d_denoise(input_path, output_path)
+    # Generate x-values
+    x_values = np.arange(binary.shape[1])
 
-if __name__ == "__main__":
-    time_start = time.time()
-    input_directory = "data\CellData\OCT_white_to_black\DEVELOP"
-    output_directory = "data\CellData\PYTHON_TEST"
-    process_directory(input_directory, output_directory)
-    time_end = time.time()
-    print("Time elapsed: ", time_end - time_start)
+    # Choose the set of points and fitting function
+    params, params_covariance = optimize.curve_fit(quadratic, x_values, middle_points, p0=[1, 1, 1])
+
+    if params[0] < 0:
+        data_points = bottom_points
+    else:
+        data_points = middle_points
+
+    params_linear, params_covariance_linear = optimize.curve_fit(linear, x_values, data_points, p0=[1, 1])
+    params_quadratic, params_covariance_quadratic = optimize.curve_fit(quadratic, x_values, data_points, p0=[1, 1, 1])
+
+    fitted_linear = linear(x_values, params_linear[0], params_linear[1])
+    fitted_quadratic = quadratic(x_values, params_quadratic[0], params_quadratic[1], params_quadratic[2])
+
+    if pearsonr(data_points, fitted_linear)[0] > pearsonr(data_points, fitted_quadratic)[0]:
+        fitted_values = fitted_linear
+    else:
+        fitted_values = fitted_quadratic
+
+    # Normalize the image
+    for i in range(image.shape[1]):
+        image[:, i] = np.roll(image[:, i], -int(fitted_values[i]), axis=0)
+
+    # Save the flattened image
+    cv2.imwrite(output_path, image)
+
+# Use the function
+input_path = r"data\CellData\OCT_mb3d\train\NORMAL\NORMAL-586534-7.jpeg"
+output_path = r"data\TESTING.jpeg"
+flatten_image(input_path, output_path)

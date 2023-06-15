@@ -1,7 +1,7 @@
 using Distributed
 
 # Add the number of cores to use
-addprocs(16)
+addprocs(8)
 
 @everywhere begin
     using BM3DDenoise
@@ -43,16 +43,16 @@ end
 function main()
     base_path = "data/CellData/OCT_white_to_black"
     base_path_modified = "data/CellData/OCT_mb3d"
-    noise_variance = 0.3
+    noise_variance = 0.15
     subfolders = [
         # "test/NORMAL",
-        "test/DRUSEN",
+        # "test/DRUSEN",
         # "test/DME",
         # "test/CNV",
-        # "train/NORMAL",
-        # "train/DRUSEN",
+        "train/DRUSEN",
+        "train/NORMAL",
+        "train/CNV",
         # "train/DME",
-        # "train/CNV",
     ]
 
     println("Starting the main task")
@@ -60,15 +60,22 @@ function main()
     all_files = [glob("*.jpeg", joinpath(base_path, subfolder)) for subfolder in subfolders]
     all_files = vcat(all_files...)  # Concatenate all the files into a single array
 
-    @sync @distributed for file in all_files
+    # @sync @distributed for file in all_files
+    #     process_file(file, noise_variance, base_path, base_path_modified)
+    #     println("Finished processing $file")
+    # end
+
+    start_time = time()
+    for (i, file) in enumerate(all_files)
+        elapsed_time = time() - start_time
+        hours, rem = divrem(elapsed_time, 3600)
+        minutes, seconds = divrem(rem, 60)
+        println("Time elapsed: $(floor(Int, hours))h $(floor(Int, minutes))m $(floor(Int, seconds))s")
+
         process_file(file, noise_variance, base_path, base_path_modified)
+
         println("Finished processing $file")
     end
 end
 
-# Calculate the total time and start the main task
-total_time_start = time()
 main()
-total_time_end = time()
-elapsed_total_time = (total_time_end - total_time_start) / 3600  # convert to minutes
-println("Total time for all processes: ", @sprintf("%.2f", elapsed_total_time), " hours")
