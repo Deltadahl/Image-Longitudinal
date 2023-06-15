@@ -83,7 +83,7 @@ end
     mask, img_array = process_image(img)
     modified = copy(img_array)
     not_masked_pixels = sort(vec(img_array[.!mask]))
-    darkest_pixels_avg = maximum(not_masked_pixels[1:div(end, 2)])
+    darkest_pixels_avg = maximum(not_masked_pixels[1:div(end, 3)])
     # darkest_pixels_avg = median(vec(img_array[.!mask]))
     modified[mask] .= darkest_pixels_avg
     save_path = joinpath(base_path_modified, subfolder, basename(file))

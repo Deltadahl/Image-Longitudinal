@@ -35,12 +35,17 @@ def process_file(file, noise_variance, base_path, base_path_modified, counter):
 
 def main():
     base_path = "data/CellData/OCT_white_to_black"
-    base_path_modified = "data/CellData/OCT_mb3d"
-    noise_variance = 0.15
+    base_path_modified = "data/CellData/OCT_bm3d"
+    noise_variance = 0.13
     subfolders = [
+        "train/CNV",
+        "train/DME",
         "train/DRUSEN",
         "train/NORMAL",
-        "train/CNV",
+        "test/CNV",
+        "test/DME",
+        "test/DRUSEN",
+        "test/NORMAL",
     ]
 
     print("Starting the main task")

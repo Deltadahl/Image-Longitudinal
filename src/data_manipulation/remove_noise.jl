@@ -42,17 +42,17 @@ end
 
 function main()
     base_path = "data/CellData/OCT_white_to_black"
-    base_path_modified = "data/CellData/OCT_mb3d"
-    noise_variance = 0.15
+    base_path_modified = "data/CellData/OCT_bm3d"
+    noise_variance = 0.13
     subfolders = [
-        # "test/NORMAL",
-        # "test/DRUSEN",
-        # "test/DME",
-        # "test/CNV",
+        "test/NORMAL",
+        "test/DRUSEN",
+        "test/DME",
+        "test/CNV",
         "train/DRUSEN",
         "train/NORMAL",
         "train/CNV",
-        # "train/DME",
+        "train/DME",
     ]
 
     println("Starting the main task")

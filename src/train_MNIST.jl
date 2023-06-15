@@ -73,10 +73,10 @@ function main()
         # Reset the loader for the next epoch
         loader.idx = 1
         Random.shuffle!(loader.filenames)
-        save_path = "saved_models/MNIST_epoch_$(epoch)_batch_END.jld2"
-        save(save_path, "vae", vae)
-        println("saved model to $save_path")
     end
+    save_path = "saved_models/MNIST_epoch_$(epochs)_batch_END.jld2"
+    save(save_path, "vae", vae)
+    println("saved model to $save_path")
 
     return nothing
 end
