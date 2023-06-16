@@ -38,14 +38,14 @@ def main():
     base_path_modified = "data/CellData/OCT_bm3d"
     noise_variance = 0.13
     subfolders = [
-        "train/CNV",
+        # "train/CNV",
         "train/DME",
         "train/DRUSEN",
         "train/NORMAL",
-        "test/CNV",
-        "test/DME",
-        "test/DRUSEN",
-        "test/NORMAL",
+        # "test/CNV",
+        # "test/DME",
+        # "test/DRUSEN",
+        # "test/NORMAL",
     ]
 
     print("Starting the main task")

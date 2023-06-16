@@ -25,7 +25,8 @@ end
 
 function output_image(vae)
     # data_path = "data/data_resized/all_develop"
-    data_path = "data/MNIST"
+    data_path = "data/MNIST_small"
+    data_path = "data/data_resized/MNIST_small_224"
     loader = DataLoader(data_path, BATCH_SIZE) |> DEVICE
     images, labels = next_batch(loader)
     images = images |> DEVICE
@@ -89,7 +90,7 @@ end
 
 function main()
     # Load the model
-    model_path = "saved_models/MNIST_epoch_20_batch_END.jld2"
+    model_path = "saved_models/MNIST_epoch_16.jld2"
     vae = load(model_path, "vae")
     vae = vae |> DEVICE
 

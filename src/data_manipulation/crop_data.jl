@@ -20,7 +20,7 @@ function resize_and_save_image(file::String, new_path::String, new_dims::Tuple{I
         pad_before = div.((new_dims .- dims), 2)
         pad_after = new_dims .- dims .- pad_before
         image = PaddedView(
-            Gray(1), # Gray(0) is black
+            Gray(0), # Gray(0) is black
             image,
             (
                 pad_before[1] + dims[1] + pad_after[1],
@@ -51,22 +51,22 @@ end
 
 function main()
     # Call the function for each subdirectory
-    base_path = "data/CellData/OCT"
+    base_path = "data/CellData/OCT_bm3d"
     subfolders = [
-        "train/NORMAL",
-        "train/DRUSEN",
-        "train/DME",
-        "train/CNV",
-        # "test/NORMAL",
-        # "test/DRUSEN",
-        # "test/DME",
-        # "test/CNV",
+        # "train/NORMAL",
+        # "train/DRUSEN",
+        # "train/DME",
+        # "train/CNV",
+        "test/NORMAL",
+        "test/DRUSEN",
+        "test/DME",
+        "test/CNV",
     ]
-    new_dims = (512, 512) # TODO can change this later
+    new_dims = (456, 456) # TODO can change this later
 
     for subfolder in subfolders
         old_path = joinpath(base_path, subfolder)
-        new_path = joinpath("data/data_resized", "all_train_512")
+        new_path = joinpath("data/data_resized", "test_51")
 
         # Create the new directory if it doesn't exist
         mkpath(new_path)
