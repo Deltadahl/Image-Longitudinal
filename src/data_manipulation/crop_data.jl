@@ -62,11 +62,11 @@ function main()
         "test/DME",
         "test/CNV",
     ]
-    new_dims = (456, 456) # TODO can change this later
+    new_dims = (256, 224) # TODO can change this later
 
     for subfolder in subfolders
         old_path = joinpath(base_path, subfolder)
-        new_path = joinpath("data/data_resized", "test_51")
+        new_path = joinpath("data/data_resized", "test_256_224")
 
         # Create the new directory if it doesn't exist
         mkpath(new_path)

@@ -18,9 +18,9 @@ end
 
 
 function main()
-    epochs = 100
-    load_model = false
-    model_name = "MNIST_epoch_30.jld2"
+    epochs = 3
+    load_model = true
+    model_name = "MNIST_epoch_3.jld2"
     # data_path = "data/MNIST_small"
     data_path = "data/data_resized/MNIST_small_224"
 
@@ -65,10 +65,6 @@ function main()
             labels = labels |> DEVICE
 
             train!(vae, images, opt, ps, labels, gl_balance)
-            println("Batch: $batch_nr")
-            println("Loss rec: gl_balance.avg_rec")
-            println("Loss kl:  gl_balance.avg_kl")
-            println("Loss tot: gl_balance.avg_rec + gl_balance.avg_kl")
         end
 
         elapsed_time = time() - start_time

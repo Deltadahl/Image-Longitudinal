@@ -90,7 +90,7 @@ end
 
 function main()
     # Load the model
-    model_path = "saved_models/MNIST_epoch_16.jld2"
+    model_path = "saved_models/MNIST_epoch_3.jld2"
     vae = load(model_path, "vae")
     vae = vae |> DEVICE
 

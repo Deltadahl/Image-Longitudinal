@@ -27,8 +27,8 @@ function create_encoder()
 
     # return ResNet34()
 
-    # model = ResNet(34; pretrain = true)
-    model = EfficientNetv2(:small; inchannels = 1, nclasses = OUTPUT_RESNET)
+    # model = ResNet(18; pretrain = false, inchannels = 1, nclasses = OUTPUT_RESNET)
+    model = ResNet(18; pretrain = true)
     return model |> DEVICE
 end
 
@@ -149,16 +149,18 @@ end
 
 function loss(m::VAE, x, y, gl_balance::GLBalance)
     decoded, μ, logvar = m(x)
+    x_gray = mean(x, dims=3)
 
-    reconstruction_loss = sum(mean((decoded - x).^2, dims=(1,2,3))) # TODO test SSIM
+    reconstruction_loss = sum(mean((decoded - x_gray).^2, dims=(1,2,3))) # TODO test VGG16 perceptual loss
 
     kl_divergence = -0.5 .* sum(1 .+ logvar .- μ .^ 2 .- exp.(logvar))
 
     β = 3.2 * 10^(-4) * 4
-    reconstruction_loss = reconstruction_loss
     kl_divergence = β * kl_divergence
 
     update_gl_balance!(gl_balance, kl_divergence, reconstruction_loss)
+    println("kl_divergence: ", kl_divergence)
+    println("reconstruction_loss: ", reconstruction_loss)
     return reconstruction_loss + kl_divergence
 end
 

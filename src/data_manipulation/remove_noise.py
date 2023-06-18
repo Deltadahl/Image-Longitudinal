@@ -39,8 +39,8 @@ def main():
     noise_variance = 0.13
     subfolders = [
         # "train/CNV",
-        "train/DME",
-        "train/DRUSEN",
+        # "train/DME",
+        # "train/DRUSEN",
         "train/NORMAL",
         # "test/CNV",
         # "test/DME",
