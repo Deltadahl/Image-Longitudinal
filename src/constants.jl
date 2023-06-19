@@ -1,8 +1,8 @@
 # constants.jl
 using Flux
 
-const BATCH_SIZE = 32
+const BATCH_SIZE = 8
 const DEVICE = gpu
 const OUTPUT_IMAGE_DIR = "output_images"
-const LATENT_DIM = 5
-const OUTPUT_RESNET = 1000
+const LATENT_DIM = 16 # TODO make larger.
+const OUTPUT_SIZE_ENCODER = 1000

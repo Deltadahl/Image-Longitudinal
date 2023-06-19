@@ -53,10 +53,10 @@ function main()
     # Call the function for each subdirectory
     base_path = "data/CellData/OCT_bm3d"
     subfolders = [
-        "train/NORMAL",
-        "train/DRUSEN",
-        "train/DME",
-        "train/CNV",
+        # "train/NORMAL",
+        # "train/DRUSEN",
+        # "train/DME",
+        # "train/CNV",
         "test/NORMAL",
         "test/DRUSEN",
         "test/DME",
@@ -66,7 +66,7 @@ function main()
 
     for subfolder in subfolders
         old_path = joinpath(base_path, subfolder)
-        new_path = joinpath("data/data_resized", "bm3d_496_512")
+        new_path = joinpath("data/data_resized", "bm3d_496_512_test")
 
         # Create the new directory if it doesn't exist
         mkpath(new_path)

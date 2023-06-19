@@ -46,7 +46,7 @@ function create_encoder()
 end
 
 function create_μ_logvar_layers()
-    return Dense(OUTPUT_RESNET, LATENT_DIM) |> DEVICE, Dense(OUTPUT_RESNET, LATENT_DIM) |> DEVICE
+    return Dense(OUTPUT_SIZE_ENCODER, LATENT_DIM) |> DEVICE, Dense(OUTPUT_SIZE_ENCODER, LATENT_DIM) |> DEVICE
 end
 
 function create_decoder()

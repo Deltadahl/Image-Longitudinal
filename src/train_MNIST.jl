@@ -17,22 +17,33 @@ function train!(model, x, opt, ps, y, gl_balance, vgg)
     nothing
 end
 
+# function vgg_init()
+#     vgg = VGG(16; pretrain = true)
+#     # Use model.layers up to the second maxpool layer as feature extractor
+#     println("vgg.layers = $(vgg.layers)")
+#     return vgg
+# end
+
 function vgg_init()
     vgg = VGG(16; pretrain = true)
-    # Use model.layers up to the second maxpool layer as feature extractor
-    println("vgg.layers = $(vgg.layers)")
-    conv_layers = vgg.layers[1:2]
-    println("conv_layers = $(conv_layers)")
-    output = Chain(conv_layers...) |> DEVICE
-    println("output = $(output)")
-    return output
+
+    # Print the original layers
+    println("Original vgg layers = $(vgg.layers)")
+
+    # Select layers up to the ninth layer, 'block3_conv3'
+    vgg_feature_extractor = Chain(vgg.layers[1][1:9]...)
+
+    # Print the selected layers
+    println("Selected vgg layers = $(vgg_feature_extractor.layers)")
+
+    return vgg_feature_extractor
 end
 
 
 function main()
-    epochs = 3
+    epochs = 1
     load_model = false
-    model_name = "MNIST_epoch_1.jld2"
+    model_name = "MNIST_epoch_3.jld2"
     # data_path = "data/MNIST_small"
     data_path = "data/data_resized/MNIST_small_224"
 
@@ -59,13 +70,13 @@ function main()
     ps = params(vae)
     opt = ADAM(0.001)
 
-    vgg = vgg_init()
+    vgg = vgg_init() |> DEVICE
 
     start_time = time()
     loss_list_rec_saver = []
     loss_list_kl_saver = []
     for epoch in 1:epochs
-        gl_balance = GLBalance(0.0f0, 0.0f0)
+        gl_balance = GLBalance(0.0f0, 0.0f0, 0.0f0)
 
         println("Epoch: $epoch/$epochs")
         batch_nr = 0

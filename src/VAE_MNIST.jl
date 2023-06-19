@@ -25,19 +25,21 @@ function create_encoder()
     #     Flux.flatten,
     # ) |> DEVICE
 
-    # model = ResNet(18; pretrain = false, inchannels = 1, nclasses = OUTPUT_RESNET)
+    model_base = ResNet(18; inchannels = 1, nclasses = OUTPUT_SIZE_ENCODER)
+    model = Chain(model_base, relu)
+
 
     # model = ResNet(18; pretrain = true)
     # model = ConvNeXt(:tiny;) # Slow and quite bad, but does WORKING
-    # model = EfficientNet(:b0, inchannels = 1, nclasses = OUTPUT_RESNET)
-    model = EfficientNetv2(:small, inchannels = 1, nclasses = OUTPUT_RESNET)
+    # model = EfficientNet(:b0, inchannels = 1, nclasses = OUTPUT_SIZE_ENCODER)
+    # model = EfficientNetv2(:small, inchannels = 1, nclasses = OUTPUT_SIZE_ENCODER)
     return model |> DEVICE
 end
 
 # Define the mean and log variance layers
 function create_μ_logvar_layers()
     # return Dense(7 * 7 * 64, LATENT_DIM) |> DEVICE,  Dense(7 * 7 * 64, LATENT_DIM) |> DEVICE
-    return Dense(OUTPUT_RESNET, LATENT_DIM) |> DEVICE,  Dense(OUTPUT_RESNET, LATENT_DIM) |> DEVICE
+    return Dense(OUTPUT_SIZE_ENCODER, LATENT_DIM) |> DEVICE,  Dense(OUTPUT_SIZE_ENCODER, LATENT_DIM) |> DEVICE
 end
 
 # Define the decoder
@@ -142,11 +144,13 @@ end
 mutable struct GLBalance
     avg_kl::Float32
     avg_rec::Float32
+    counter::Float32
 end
 
 Zygote.@nograd function update_gl_balance!(gl_balance::GLBalance,  kl_div, rec)
     gl_balance.avg_kl += kl_div
     gl_balance.avg_rec += rec
+    counter += 1.0f0
 end
 
 # function convert_to_rgb(images::CuArray{Float32, 4})
@@ -164,44 +168,72 @@ end
 #     return rgb_images
 # end
 
+# function convert_to_rgb(images::CuArray{Float32, 4})
+#     H, W, C, B = size(images)
+
+#     # Create an empty array with 3 color channels
+#     rgb_images = CuArray{Float32, 4}(undef, 224, 224, 3, B)
+
+#     for b in 1:B
+#         # TODO check if copy
+#         resized_image = images[:,:,1,b] #CuArrays.cu(imresize(Array(images[:, :, 1, b]), (224, 224)))
+#         for c in 1:3
+#             rgb_images[:, :, c, b] = resized_image
+#         end
+#     end
+#     return rgb_images
+# end
+
+# function convert_to_rgb(images::CuArray{Float32, 4})
+#     # Resize the last dimension to 3
+#     size_images = size(images)
+#     # Preallocate a CuArray of zeros with an extra 3rd dimension for RGB channels
+#     rgb_images = Flux.zeros(eltype(images), size_images[1], size_images[2], 3, size_images[4]) |> DEVICE
+
+#     # Fill each channel with the grayscale image
+#     for channel in 1:3
+#         rgb_images[:, :, channel, :] = images
+#     end
+#     return rgb_images
+# end
+
+# function convert_to_rgb(images::CuArray{Float32, 4})
+#     # Repeat grayscale image along the channel dimension
+#     rgb_images = repeat(images, outer=[1,1,3,1])
+#     return rgb_images |> DEVICE
+# end
+
 function convert_to_rgb(images::CuArray{Float32, 4})
-    H, W, C, B = size(images)
-
-    # Create an empty array with 3 color channels
-    rgb_images = CuArray{Float32, 4}(undef, 224, 224, 3, B)
-
-    for b in 1:B
-        resized_image = inmages[:,:,1,b] #CuArrays.cu(imresize(Array(images[:, :, 1, b]), (224, 224)))
-        for c in 1:3
-            rgb_images[:, :, c, b] = resized_image
-        end
-    end
-    return rgb_images
+    # Broadcast grayscale image along the channel dimension
+    rgb_images = cat(images, images, images, dims=3)
+    return rgb_images |> DEVICE
 end
+
 
 function vgg_loss(decoded, x, vgg)
     decoded = convert_to_rgb(decoded)
     x = convert_to_rgb(x)
     decoded = vgg(decoded)
     x = vgg(x)
-    return sum(mean((decoded - x).^2, dims=(1,2,3)))
+    return sum(mean((decoded .- x).^2, dims=(1,2,3))) # TODO need to change when I change VGG16 output.
 end
 
 function loss(m::VAE, x, y, gl_balance::GLBalance, vgg::Chain)
     decoded, μ, logvar = m(x)
     # x_gray = mean(x, dims=3)
     # reconstruction_loss = sum(mean((decoded - x_gray).^2, dims=(1,2,3))) # TODO test VGG16 perceptual loss
-    reconstruction_loss = sum(mean((decoded - x).^2, dims=(1,2,3))) # TODO test VGG16 perceptual loss
-    # reconstruction_loss = vgg_loss(decoded, x, vgg)
+    # reconstruction_loss = sum(mean((decoded - x).^2, dims=(1,2,3))) # TODO test VGG16 perceptual loss
+    reconstruction_loss = vgg_loss(decoded, x, vgg)
 
     kl_divergence = -0.5 .* sum(1 .+ logvar .- μ .^ 2 .- exp.(logvar))
 
-    β = 3.2 * 10^(-4) * 4
-    kl_divergence = β * kl_divergence
+    # β = 3.2 * 10^(-4) * 4
+    β = 3.2 * 10^(-4) * 4 * 5
+    kl_divergence = β .* kl_divergence
 
     update_gl_balance!(gl_balance, kl_divergence, reconstruction_loss)
-    println("kl_divergence: ", kl_divergence)
-    println("reconstruction_loss: ", reconstruction_loss)
+    println("kl_divergence: ", gl_balance.avg_kl / gl_balance.counter)
+    println("reconstruction_loss: ", gl_balance.avg_rec / gl_balance.counter)
     return reconstruction_loss + kl_divergence
 end
 

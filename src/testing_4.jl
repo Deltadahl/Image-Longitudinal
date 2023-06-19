@@ -4,8 +4,11 @@ using Flux: onehotbatch, onecold, crossentropy, throttle, params, Chain, softmax
 using Base.Iterators: repeated
 using CUDA
 using Statistics
+using DataLoaders
+using Random
+using Images
+using FileIO
 CUDA.math_mode!(CUDA.PEDANTIC_MATH)
-include("data_manipulation/data_loader_MNIST.jl")
 
 # Constants
 const BATCH_SIZE = 16
@@ -16,9 +19,41 @@ const EPOCHS = 2
 # Load data
 # data_path = "data/data_resized/MNIST_small_224"
 data_path = "data/MNIST"
-loader = DataLoader(data_path, BATCH_SIZE) |> DEVICE
+filenames = readdir(data_path)
+Random.shuffle!(filenames)
 
-# Initialize model
+function get_label(filename::String)
+    for i in 0:9
+        if startswith(filename, string(i))
+            return i
+        end
+    end
+    error("Invalid filename: ", filename)
+end
+
+# Load all data into memory
+images = []
+labels = []
+for filename in filenames
+    image = load(joinpath(data_path, filename))
+    # Convert the image to grayscale and then to Float32
+    image = Float32.(Gray.(image))
+    image = imresize(image, (224, 224))
+
+    # Reshape the image to the format (height, width, channels, batch size)
+    image = reshape(image, size(image)..., 1, 1)
+    push!(images, image)
+    push!(labels, get_label(filename))
+end
+
+# Concatenate all images along the 4th dimension to form a single batch
+images = cat(images..., dims=4) |> DEVICE
+labels = Flux.onehotbatch(labels, 0:9) |> DEVICE
+
+# Create DataLoader
+data = (images, labels)
+dataloader = DataLoader(data, BATCH_SIZE)
+
 # Initialize model
 # base_model = EfficientNet(:b4, inchannels = 1, nclasses = OUTPUT_SIZE_ENCODER) |> DEVICE
 base_model = ResNet(18; inchannels=1, nclasses=OUTPUT_SIZE_ENCODER) |> DEVICE
@@ -44,16 +79,8 @@ for epoch in 1:EPOCHS
     println("Epoch: $epoch/$EPOCHS")
     println("----------------------------------------------")
     batch_nr = 0
-    while true
+    for (images, labels) in dataloader
         batch_nr += 1
-        images, labels = next_batch(loader)
-
-        if images === nothing
-            break
-        end
-
-        images = images |> DEVICE
-        labels = labels |> DEVICE
 
         # Perform a step of gradient descent
         Flux.train!(loss, params(model), [(images, labels)], optimizer)
@@ -67,7 +94,6 @@ for epoch in 1:EPOCHS
             println("Batch: $batch_nr, Accuracy: $mean_acc")
         end
     end
-    loader.idx = 1
-    Random.shuffle!(loader.filenames)
+    Random.shuffle!(filenames)
     @show (time() - time_start)
 end

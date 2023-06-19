@@ -30,7 +30,7 @@ function next_batch(loader::DataLoader)
     start_idx = loader.idx
     end_idx = min(loader.idx + loader.batch_size - 1, length(loader.filenames))
 
-    if start_idx >= end_idx
+    if start_idx > end_idx
         return nothing, nothing
     end
 

@@ -21,8 +21,8 @@ loader = DataLoader(data_path, BATCH_SIZE) |> DEVICE
 # Initialize model
 # Initialize model
 # base_model = EfficientNet(:b4, inchannels = 1, nclasses = OUTPUT_SIZE_ENCODER) |> DEVICE
-base_model = ResNet(18; inchannels=1, nclasses=OUTPUT_SIZE_ENCODER) |> DEVICE
-model = Chain(base_model, softmax) |> DEVICE
+base_model = VGG(16; pretrain = true)
+model = Chain(base_model, relu, Dense(1000, 10), softmax) |> DEVICE
 
 total_params(model) = sum(length, Flux.params(model))
 println("Total parameters: ", total_params(model))
@@ -54,6 +54,20 @@ for epoch in 1:EPOCHS
 
         images = images |> DEVICE
         labels = labels |> DEVICE
+
+        function convert_to_rgb(images::CuArray{Float32, 4})
+            # Resize the last dimension to 3
+            size_images = size(images)
+            # Preallocate a CuArray of zeros with an extra 3rd dimension for RGB channels
+            rgb_images = Flux.zeros(eltype(images), size_images[1], size_images[2], 3, size_images[4]) |> DEVICE
+
+            # Fill each channel with the grayscale image
+            for channel in 1:3
+                rgb_images[:, :, channel, :] = images
+            end
+            return rgb_images
+        end
+        images = convert_to_rgb(images)
 
         # Perform a step of gradient descent
         Flux.train!(loss, params(model), [(images, labels)], optimizer)

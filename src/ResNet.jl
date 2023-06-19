@@ -54,7 +54,7 @@ function ResNet34()
         res_layer(3, 256, 512),
         AdaptiveMeanPool((1,1)),
         Flux.flatten,
-        Dense(512, OUTPUT_RESNET),
+        Dense(512, OUTPUT_SIZE_ENCODER),
         relu
     ) |> DEVICE
 end
