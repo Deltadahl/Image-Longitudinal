@@ -4,8 +4,8 @@ using CUDA
 using Statistics
 using Zygote
 using Metalhead
+using Colors
 include("constants.jl")
-include("ResNet.jl")
 
 #Define the encoder
 function create_encoder()
@@ -25,10 +25,12 @@ function create_encoder()
     #     Flux.flatten,
     # ) |> DEVICE
 
-    # return ResNet34()
-
     # model = ResNet(18; pretrain = false, inchannels = 1, nclasses = OUTPUT_RESNET)
-    model = ResNet(18; pretrain = true)
+
+    # model = ResNet(18; pretrain = true)
+    # model = ConvNeXt(:tiny;) # Slow and quite bad, but does WORKING
+    # model = EfficientNet(:b0, inchannels = 1, nclasses = OUTPUT_RESNET)
+    model = EfficientNetv2(:small, inchannels = 1, nclasses = OUTPUT_RESNET)
     return model |> DEVICE
 end
 
@@ -147,11 +149,50 @@ Zygote.@nograd function update_gl_balance!(gl_balance::GLBalance,  kl_div, rec)
     gl_balance.avg_rec += rec
 end
 
-function loss(m::VAE, x, y, gl_balance::GLBalance)
-    decoded, μ, logvar = m(x)
-    x_gray = mean(x, dims=3)
+# function convert_to_rgb(images::CuArray{Float32, 4})
+#     H, W, C, B = size(images)
 
-    reconstruction_loss = sum(mean((decoded - x_gray).^2, dims=(1,2,3))) # TODO test VGG16 perceptual loss
+#     # Create an empty array with 3 color channels
+#     rgb_images = Array{Float32, 4}(undef, 224, 224, 3, B)
+
+#     for b in 1:B
+#         resized_image = imresize(images[:, :, 1, b], (224, 224))
+#         for c in 1:3
+#             rgb_images[:, :, c, b] = resized_image
+#         end
+#     end
+#     return rgb_images
+# end
+
+function convert_to_rgb(images::CuArray{Float32, 4})
+    H, W, C, B = size(images)
+
+    # Create an empty array with 3 color channels
+    rgb_images = CuArray{Float32, 4}(undef, 224, 224, 3, B)
+
+    for b in 1:B
+        resized_image = inmages[:,:,1,b] #CuArrays.cu(imresize(Array(images[:, :, 1, b]), (224, 224)))
+        for c in 1:3
+            rgb_images[:, :, c, b] = resized_image
+        end
+    end
+    return rgb_images
+end
+
+function vgg_loss(decoded, x, vgg)
+    decoded = convert_to_rgb(decoded)
+    x = convert_to_rgb(x)
+    decoded = vgg(decoded)
+    x = vgg(x)
+    return sum(mean((decoded - x).^2, dims=(1,2,3)))
+end
+
+function loss(m::VAE, x, y, gl_balance::GLBalance, vgg::Chain)
+    decoded, μ, logvar = m(x)
+    # x_gray = mean(x, dims=3)
+    # reconstruction_loss = sum(mean((decoded - x_gray).^2, dims=(1,2,3))) # TODO test VGG16 perceptual loss
+    reconstruction_loss = sum(mean((decoded - x).^2, dims=(1,2,3))) # TODO test VGG16 perceptual loss
+    # reconstruction_loss = vgg_loss(decoded, x, vgg)
 
     kl_divergence = -0.5 .* sum(1 .+ logvar .- μ .^ 2 .- exp.(logvar))
 

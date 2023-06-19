@@ -27,16 +27,16 @@ end
 # Define the decoder
 function create_decoder()
     return Chain(
-        Dense(512, 31 * 32 * 256, relu) |> DEVICE,
-        x -> reshape(x, (31, 32, 256, :)),
-        ConvTranspose((3, 3), 256 => 128, stride = 2, pad = SamePad(), relu) |> DEVICE,
-        BatchNorm(128, relu) |> DEVICE,
-        ConvTranspose((3, 3), 128 => 64, stride = 2, pad = SamePad(), relu) |> DEVICE,
-        BatchNorm(64, relu) |> DEVICE,
-        ConvTranspose((3, 3), 64 => 32, stride = 2, pad = SamePad(), relu) |> DEVICE,
-        BatchNorm(32, relu) |> DEVICE,
-        ConvTranspose((3, 3), 32 => 1, stride = 2, pad = SamePad(), sigmoid) |> DEVICE,
-    )
+        Dense(512, 31 * 32 * 256, relu),
+        x -> reshape(x, (31, 32, 256)),
+        ConvTranspose((3, 3), 256 => 128, stride = 2, pad = SamePad(), relu),
+        BatchNorm(128, relu),
+        ConvTranspose((3, 3), 128 => 64, stride = 2, pad = SamePad(), relu),
+        BatchNorm(64, relu),
+        ConvTranspose((3, 3), 64 => 32, stride = 2, pad = SamePad(), relu),
+        BatchNorm(32, relu),
+        ConvTranspose((3, 3), 32 => 1, stride = 2, pad = SamePad(), sigmoid),
+    ) |> DEVICE
 end
 
 # Define the VAE

@@ -3,7 +3,6 @@ using Images
 using FileIO
 using Random
 using Flux
-using Plots
 
 mutable struct DataLoader
     dir::String
@@ -31,7 +30,7 @@ function next_batch(loader::DataLoader)
     start_idx = loader.idx
     end_idx = min(loader.idx + loader.batch_size - 1, length(loader.filenames))
 
-    if start_idx > end_idx
+    if start_idx >= end_idx
         return nothing, nothing
     end
 
@@ -44,11 +43,11 @@ function next_batch(loader::DataLoader)
         image = load(joinpath(loader.dir, filename))
         # Convert the image to grayscale and then to Float32
         image = Float32.(Gray.(image))
-        image = imresize(image, (224,224)) # TODO JUST DEVELOPING....
+        image = imresize(image, (224, 224)) # TODO JUST DEVELOPING....
 
         # Reshape the image to the format (height, width, channels, batch size)
         image = reshape(image, size(image)..., 1, 1)
-        image = repeat(image, outer=(1,1,3)) # TODO JUST DEVELOPING....
+        # image = repeat(image, outer=(1,1,3)) # TODO JUST DEVELOPING....
         push!(images, image)
         push!(labels, get_label(filename))
     end

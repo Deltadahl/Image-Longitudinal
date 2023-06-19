@@ -5,22 +5,34 @@ using Flux: params
 using JLD2, FileIO
 using Glob
 using Printf
-using ProgressMeter
+using CUDA
 include("data_manipulation/data_loader_MNIST.jl")
 include("VAE_MNIST.jl")
+CUDA.math_mode!(CUDA.PEDANTIC_MATH)
 
-function train!(model, x, opt, ps, y, gl_balance)
-    batch_loss, back = Flux.pullback(() -> loss(model, x, y, gl_balance), ps)
+function train!(model, x, opt, ps, y, gl_balance, vgg)
+    batch_loss, back = Flux.pullback(() -> loss(model, x, y, gl_balance, vgg), ps)
     grads = back(1)
     Optimise.update!(opt, ps, grads)
     nothing
 end
 
+function vgg_init()
+    vgg = VGG(16; pretrain = true)
+    # Use model.layers up to the second maxpool layer as feature extractor
+    println("vgg.layers = $(vgg.layers)")
+    conv_layers = vgg.layers[1:2]
+    println("conv_layers = $(conv_layers)")
+    output = Chain(conv_layers...) |> DEVICE
+    println("output = $(output)")
+    return output
+end
+
 
 function main()
     epochs = 3
-    load_model = true
-    model_name = "MNIST_epoch_3.jld2"
+    load_model = false
+    model_name = "MNIST_epoch_1.jld2"
     # data_path = "data/MNIST_small"
     data_path = "data/data_resized/MNIST_small_224"
 
@@ -47,6 +59,8 @@ function main()
     ps = params(vae)
     opt = ADAM(0.001)
 
+    vgg = vgg_init()
+
     start_time = time()
     loss_list_rec_saver = []
     loss_list_kl_saver = []
@@ -64,7 +78,7 @@ function main()
             images = images |> DEVICE
             labels = labels |> DEVICE
 
-            train!(vae, images, opt, ps, labels, gl_balance)
+            train!(vae, images, opt, ps, labels, gl_balance, vgg)
         end
 
         elapsed_time = time() - start_time
