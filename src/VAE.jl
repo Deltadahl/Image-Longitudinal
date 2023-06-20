@@ -265,7 +265,7 @@ mutable struct LossNormalizer
     LossNormalizer() = new(0.0f0, 0)
 end
 
-function update_normalizer!(normalizer::LossNormalizer, value::Float32)
+Zygote.@nograd function update_normalizer!(normalizer::LossNormalizer, value::Float32)
     normalizer.sum += value
     normalizer.count += 1
     return nothing
@@ -336,8 +336,8 @@ end
 
 function loss(m::VAE, x, y, loss_saver::LossSaver, vgg, loss_normalizers)
     decoded, μ, logvar = m(x)
-    # reconstruction_loss = sum(mean((decoded .- x).^2, dims=(1,2,3))) # TODO test VGG16 perceptual loss
-    reconstruction_loss = vgg_loss(decoded, x, vgg, loss_normalizers)
+    reconstruction_loss = sum(mean((decoded .- x).^2, dims=(1,2,3))) # TODO test VGG16 perceptual loss
+    # reconstruction_loss = vgg_loss(decoded, x, vgg, loss_normalizers)
 
     kl_divergence = -0.5 .* sum(1 .+ logvar .- μ .^ 2 .- exp.(logvar))
 

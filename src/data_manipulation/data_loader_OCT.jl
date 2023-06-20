@@ -139,7 +139,7 @@ function next_batch(loader::DataLoaderOCT, start_idx::Int)
         push!(labels, get_label(loader, filename))
 
         # Explicitly delete the image variable to free up memory
-        finalize(image) # TODO see if this changes anything
+        # finalize(image) # TODO see if this changes anything
     end
 
     # Concatenate all images along the 4th dimension to form a single batch

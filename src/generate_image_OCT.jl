@@ -5,7 +5,7 @@ using Glob
 
 # include("VAE.jl")
 # include("data_manipulation/data_loader.jl")
-include("VAE_OCT.jl")
+include("VAE.jl")
 include("data_manipulation/data_loader_OCT.jl")
 include("constants.jl")
 
@@ -25,8 +25,8 @@ end
 
 function output_image(vae)
     # data_path = "data/data_resized/all_develop"
-    data_path = "data/data_resized/all_train_512"
-    loader = DataLoader(data_path, BATCH_SIZE)
+    data_path = "data/data_resized/bm3d_496_512_test"
+    loader = DataLoaderOCT(data_path, BATCH_SIZE, false)
     images, labels = first(loader)
     images = images |> DEVICE
 
@@ -86,7 +86,7 @@ end
 
 function main()
     # Load the model
-    model_path = "saved_models/OCT_epoch_3.jld2"
+    model_path = "saved_models/OCT_epoch_7.jld2"
     vae = load(model_path, "vae")
     vae = vae |> DEVICE
     output_image(vae)

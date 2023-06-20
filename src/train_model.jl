@@ -41,19 +41,10 @@ function main()
     if load_model_nr > 0
         vae = load("saved_models/" * model_name, "vae") |> DEVICE
     else
-        # function print_params(model)
-        #     ps = Flux.params(model)
-        #     for (i, p) in enumerate(ps)
-        #         println("Layer $i has $(length(p)) parameters.")
-        #     end
-        # end
-
         encoder = create_encoder()
         μ_layer, logvar_layer = create_μ_logvar_layers()
         decoder = create_decoder()
         vae = VAE(encoder, μ_layer, logvar_layer, decoder) |> DEVICE
-
-        # print_params(vae)
     end
 
     ps = params(vae)
@@ -89,9 +80,6 @@ function main()
         minutes, seconds = divrem(rem, 60)
         println("Time elapsed: $(floor(Int, hours))h $(floor(Int, minutes))m $(floor(Int, seconds))s")
 
-
-        # rec_loss = sum(loss_list_rec)
-        # kl_loss = sum(loss_list_kl)
         rec_loss = loss_saver.avg_rec / loss_saver.counter
         kl_loss = loss_saver.avg_kl / loss_saver.counter
         epoch_loss = rec_loss + kl_loss

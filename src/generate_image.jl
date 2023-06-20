@@ -4,9 +4,7 @@ using JLD2, FileIO
 using Glob
 using Flux
 using CUDA
-
-# include("VAE.jl")
-# include("data_manipulation/data_loader.jl")
+CUDA.math_mode!(CUDA.PEDANTIC_MATH)
 include("VAE.jl")
 include("data_manipulation/data_loader_MNIST.jl")
 include("data_manipulation/data_loader_OCT.jl")
@@ -29,14 +27,12 @@ end
 function output_image(vae, loader)
     images, labels = first(loader)
     @show size(images)
-    # show type of images
     @show typeof(images)
     images = images |> DEVICE
 
     # reconstructed, _, _ = vae(images)
     encoded = vae.encoder(images)
     μ = vae.μ_layer(encoded)
-    @show size(μ)
     reconstructed = vae.decoder(μ)
 
     # Convert the reconstructed tensor back to an image
@@ -93,7 +89,7 @@ function main()
     data_path = "data/MNIST_small"
     # data_name = "OCT"
     # data_path = "data/data_resized/bm3d_496_512_test"
-    epoch = 2
+    epoch = 3
 
     model_path = "saved_models/$(data_name)_epoch_$(epoch).jld2"
     vae = load(model_path, "vae")
@@ -102,7 +98,7 @@ function main()
     if data_name == "OCT"
         loader = DataLoaderOCT(data_path, BATCH_SIZE, false)
     else
-        loader = DataLoaderMNIST(data_path, BATCH_SIZE) |> DEVICE
+        loader = DataLoaderMNIST(data_path, BATCH_SIZE) # |> DEVICE
     end
     output_image(vae, loader)
     return nothing
