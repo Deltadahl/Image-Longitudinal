@@ -4,11 +4,9 @@ using JLD2, FileIO
 using Glob
 using Flux
 using CUDA
-CUDA.math_mode!(CUDA.PEDANTIC_MATH)
 include("VAE.jl")
 include("data_manipulation/data_loader_MNIST.jl")
 include("data_manipulation/data_loader_OCT.jl")
-include("constants.jl")
 
 function generate_image(vae::VAE)
     # Sample a point in the latent space

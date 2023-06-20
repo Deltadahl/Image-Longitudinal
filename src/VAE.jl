@@ -1,10 +1,12 @@
 # VAE_MNIST.jl
 using Flux
+using Flux: Chain
 using CUDA
 using Statistics
 using Zygote
 using Metalhead
 using Colors
+CUDA.math_mode!(CUDA.PEDANTIC_MATH)
 include("constants.jl")
 
 #Define the encoder
@@ -33,13 +35,13 @@ function create_encoder()
     # model = ConvNeXt(:tiny;) # Slow and quite bad, but does WORKING
     # model = EfficientNet(:b0, inchannels = 1, nclasses = OUTPUT_SIZE_ENCODER)
     # model = EfficientNetv2(:small, inchannels = 1, nclasses = OUTPUT_SIZE_ENCODER)
-    return model |> DEVICE
+    return model
 end
 
 # Define the mean and log variance layers
 function create_μ_logvar_layers()
     # return Dense(7 * 7 * 64, LATENT_DIM) |> DEVICE,  Dense(7 * 7 * 64, LATENT_DIM) |> DEVICE
-    return Dense(OUTPUT_SIZE_ENCODER, LATENT_DIM) |> DEVICE,  Dense(OUTPUT_SIZE_ENCODER, LATENT_DIM) |> DEVICE
+    return Dense(OUTPUT_SIZE_ENCODER, LATENT_DIM),  Dense(OUTPUT_SIZE_ENCODER, LATENT_DIM)
 end
 
 # Define the decoder
@@ -92,15 +94,15 @@ function create_decoder()
         BatchNorm(32),
         relu,
         ConvTranspose((3, 3), 32 => 1, stride = 2, pad = SamePad(), sigmoid),
-    ) |> DEVICE
+    )
 end
 
 # Define the VAE
-struct VAE
-    encoder::Any
-    μ_layer::Any
-    logvar_layer::Any
-    decoder::Any
+mutable struct VAE
+    encoder::Chain
+    μ_layer::Dense
+    logvar_layer::Dense
+    decoder::Chain
 end
 
 function reparametrize(μ, logvar)
@@ -336,7 +338,7 @@ end
 
 function loss(m::VAE, x, y, loss_saver::LossSaver, vgg, loss_normalizers)
     decoded, μ, logvar = m(x)
-    reconstruction_loss = sum(mean((decoded .- x).^2, dims=(1,2,3))) # TODO test VGG16 perceptual loss
+    reconstruction_loss = sum(mean((decoded .- x).^2, dims=(1,2,3)))
     # reconstruction_loss = vgg_loss(decoded, x, vgg, loss_normalizers)
 
     kl_divergence = -0.5 .* sum(1 .+ logvar .- μ .^ 2 .- exp.(logvar))
