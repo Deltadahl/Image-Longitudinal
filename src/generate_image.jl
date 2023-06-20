@@ -2,11 +2,14 @@
 using Images
 using JLD2, FileIO
 using Glob
+using Flux
+using CUDA
 
 # include("VAE.jl")
 # include("data_manipulation/data_loader.jl")
-include("VAE_MNIST.jl")
+include("VAE.jl")
 include("data_manipulation/data_loader_MNIST.jl")
+include("data_manipulation/data_loader_OCT.jl")
 include("constants.jl")
 
 function generate_image(vae::VAE)
@@ -23,17 +26,17 @@ function generate_image(vae::VAE)
     return generated_image
 end
 
-function output_image(vae)
-    # data_path = "data/data_resized/all_develop"
-    data_path = "data/MNIST_small"
-    data_path = "data/data_resized/MNIST_small_224"
-    loader = DataLoader(data_path, BATCH_SIZE) |> DEVICE
-    images, labels = next_batch(loader)
+function output_image(vae, loader)
+    images, labels = first(loader)
+    @show size(images)
+    # show type of images
+    @show typeof(images)
     images = images |> DEVICE
 
     # reconstructed, _, _ = vae(images)
     encoded = vae.encoder(images)
     μ = vae.μ_layer(encoded)
+    @show size(μ)
     reconstructed = vae.decoder(μ)
 
     # Convert the reconstructed tensor back to an image
@@ -63,9 +66,6 @@ function output_image(vae)
     save(path_to_original_image, original_image)
     println("Saved image to $path_to_image")
 
-    loader.idx = 1
-    Random.shuffle!(loader.filenames)
-
     generated_image = generate_image(vae)
     path_to_image = joinpath(OUTPUT_IMAGE_DIR, "$new_integer-generated_image.png")
     save(path_to_image, generated_image)
@@ -73,28 +73,38 @@ function output_image(vae)
 
     # ----
 
-    encoded = vae.encoder(images)
-    μ = vae.μ_layer(encoded)
-    println("size mu = $(size(μ))")
-    μ[3,:] .+= μ[3,:] .+ 3.0
-    decoded = vae.decoder(μ)
-    # Convert the reconstructed tensor back to an image
-    reconstructed = cpu(decoded[:,:,1,1])
-    reconstructed_image = Images.colorview(Gray, reconstructed)  # remove the singleton dimensions
-    path_to_image = joinpath(OUTPUT_IMAGE_DIR, "$new_integer-reconstructed_image_altered.png")
-    save(path_to_image, reconstructed_image)
+    # encoded = vae.encoder(images)
+    # μ = vae.μ_layer(encoded)
+    # println("size mu = $(size(μ))")
+    # μ[3,:] .+= μ[3,:] .+ 3.0
+    # decoded = vae.decoder(μ)
+    # # Convert the reconstructed tensor back to an image
+    # reconstructed = cpu(decoded[:,:,1,1])
+    # reconstructed_image = Images.colorview(Gray, reconstructed)  # remove the singleton dimensions
+    # path_to_image = joinpath(OUTPUT_IMAGE_DIR, "$new_integer-reconstructed_image_altered.png")
+    # save(path_to_image, reconstructed_image)
 
     return nothing
 end
 
 
 function main()
-    # Load the model
-    model_path = "saved_models/MNIST_epoch_3.jld2"
+    data_name = "MNIST"
+    data_path = "data/MNIST_small"
+    # data_name = "OCT"
+    # data_path = "data/data_resized/bm3d_496_512_test"
+    epoch = 2
+
+    model_path = "saved_models/$(data_name)_epoch_$(epoch).jld2"
     vae = load(model_path, "vae")
     vae = vae |> DEVICE
 
-    output_image(vae)
+    if data_name == "OCT"
+        loader = DataLoaderOCT(data_path, BATCH_SIZE, false)
+    else
+        loader = DataLoaderMNIST(data_path, BATCH_SIZE) |> DEVICE
+    end
+    output_image(vae, loader)
     return nothing
 end
 

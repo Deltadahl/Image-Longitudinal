@@ -4,19 +4,20 @@ using FileIO
 using Random
 using Flux
 
-struct DataLoaderMNIST
+mutable struct DataLoader
     dir::String
     batch_size::Int
     filenames::Vector{String}
+    idx::Int
 end
 
-function DataLoaderMNIST(dir::String, batch_size::Int)
+function DataLoader(dir::String, batch_size::Int)
     filenames = readdir(dir)
     Random.shuffle!(filenames)
-    return DataLoaderMNIST(dir, batch_size, filenames)
+    return DataLoader(dir, batch_size, filenames, 1)
 end
 
-function get_label(loader::DataLoaderMNIST, filename::String)
+function get_label(filename::String)
     for i in 0:9
         if startswith(filename, string(i))
             return i
@@ -25,10 +26,9 @@ function get_label(loader::DataLoaderMNIST, filename::String)
     error("Invalid filename: ", filename)
 end
 
-Base.iterate(loader::DataLoaderMNIST, state=1) = state > length(loader.filenames) ? nothing : (next_batch(loader, state), state + loader.batch_size)
-
-function next_batch(loader::DataLoaderMNIST, start_idx::Int)
-    end_idx = min(start_idx + loader.batch_size - 1, length(loader.filenames))
+function next_batch(loader::DataLoader)
+    start_idx = loader.idx
+    end_idx = min(loader.idx + loader.batch_size - 1, length(loader.filenames))
 
     if start_idx > end_idx
         return nothing, nothing
@@ -38,19 +38,21 @@ function next_batch(loader::DataLoaderMNIST, start_idx::Int)
     images = []
     labels = []
 
-    for i in start_idx:end_idx
-        filename = loader.filenames[i]
+    for i in 1:batch_size
+        filename = loader.filenames[start_idx + i - 1]
         image = load(joinpath(loader.dir, filename))
         # Convert the image to grayscale and then to Float32
         image = Float32.(Gray.(image))
-        image = imresize(image, (224, 224))
+        image = imresize(image, (224, 224)) # TODO JUST DEVELOPING....
+
         # Reshape the image to the format (height, width, channels, batch size)
         image = reshape(image, size(image)..., 1, 1)
-        # image = repeat(image, outer=(1,1,3)) # JUST DEVELOPING....
+        # image = repeat(image, outer=(1,1,3)) # TODO JUST DEVELOPING....
         push!(images, image)
-        push!(labels, get_label(loader, filename))
+        push!(labels, get_label(filename))
     end
 
+    loader.idx += batch_size
     # Concatenate all images along the 4th dimension to form a single batch
     images = cat(images..., dims=4)
     labels = Flux.onehotbatch(labels, 0:9)
