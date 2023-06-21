@@ -22,10 +22,8 @@ function generate_image(vae::VAE)
     return generated_image
 end
 
-function output_image(vae, loader)
+function output_image(vae, loader; epoch=0)
     images, labels = first(loader)
-    @show size(images)
-    @show typeof(images)
     images = images |> DEVICE
 
     # reconstructed, _, _ = vae(images)
@@ -49,21 +47,22 @@ function output_image(vae, loader)
     if isempty(png_files)
         new_integer = 1
     else
-        latest_integer = maximum(parse(Int, match(r"(\d+)-reconstructed_image.png", file).captures[1]) for file in png_files)
+        # latest_integer = maximum(parse(Int, match(r"(\d+)-reconstructed_image.png", file).captures[1]) for file in png_files)
+        # latest_integer = maximum(parse(Int, match(r"^(\d+)-", file).captures[1]) for file in png_files)
+        latest_integer = maximum(parse(Int, match(r"^(\d+)-", basename(file)).captures[1]) for file in png_files)
         new_integer = latest_integer + 1
     end
 
     # Update the path_to_image to use the new integer
-    path_to_image = joinpath(OUTPUT_IMAGE_DIR, "$new_integer-reconstructed_image.png")
-    path_to_original_image = joinpath(OUTPUT_IMAGE_DIR, "$new_integer-original_image.png")
+    path_to_image = joinpath(OUTPUT_IMAGE_DIR, "$new_integer-$epoch-reconstructed_image.png")
+    path_to_original_image = joinpath(OUTPUT_IMAGE_DIR, "$new_integer-$epoch-original_image.png")
     save(path_to_image, reconstructed_image)
     save(path_to_original_image, original_image)
-    println("Saved image to $path_to_image")
+    println("Saved to $new_integer")
 
     generated_image = generate_image(vae)
-    path_to_image = joinpath(OUTPUT_IMAGE_DIR, "$new_integer-generated_image.png")
+    path_to_image = joinpath(OUTPUT_IMAGE_DIR, "$new_integer-$epoch-generated_image.png")
     save(path_to_image, generated_image)
-    println("Saved image to $path_to_image")
 
     # ----
 
@@ -75,7 +74,7 @@ function output_image(vae, loader)
     # # Convert the reconstructed tensor back to an image
     # reconstructed = cpu(decoded[:,:,1,1])
     # reconstructed_image = Images.colorview(Gray, reconstructed)  # remove the singleton dimensions
-    # path_to_image = joinpath(OUTPUT_IMAGE_DIR, "$new_integer-reconstructed_image_altered.png")
+    # path_to_image = joinpath(OUTPUT_IMAGE_DIR, "$new_integer-$epoch-reconstructed_image_altered.png")
     # save(path_to_image, reconstructed_image)
 
     return nothing
@@ -83,18 +82,23 @@ end
 
 
 function main()
-    data_name = "MNIST"
-    data_path = "data/MNIST_small"
-    # data_name = "OCT"
-    # data_path = "data/data_resized/bm3d_496_512_test"
-    epoch = 3
+    # data_name = "MNIST"
+    # data_path = "data/MNIST_small"
+    data_name = "OCT"
+    data_path = "data/data_resized/bm3d_496_512_test" # have train here just to see what the images look like
+    epoch = 19
 
     model_path = "saved_models/$(data_name)_epoch_$(epoch).jld2"
     vae = load(model_path, "vae")
+
+    vae.encoder = vae.encoder |> DEVICE
+    vae.μ_layer = vae.μ_layer |> DEVICE
+    vae.logvar_layer = vae.logvar_layer |> DEVICE
+    vae.decoder = vae.decoder |> DEVICE
     vae = vae |> DEVICE
 
     if data_name == "OCT"
-        loader = DataLoaderOCT(data_path, BATCH_SIZE, false)
+        loader = DataLoaderOCT(data_path, BATCH_SIZE, false) # Have true here just to see what the images look like
     else
         loader = DataLoaderMNIST(data_path, BATCH_SIZE) # |> DEVICE
     end
@@ -102,4 +106,4 @@ function main()
     return nothing
 end
 
-main()
+# main()

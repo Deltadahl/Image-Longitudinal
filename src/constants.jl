@@ -1,8 +1,8 @@
 # constants.jl
 using Flux
 
-const BATCH_SIZE = 6
+const BATCH_SIZE = 6 #64
 const DEVICE = gpu
 const OUTPUT_IMAGE_DIR = "output_images"
-const LATENT_DIM = 32
+const LATENT_DIM = 128
 const OUTPUT_SIZE_ENCODER = 1000

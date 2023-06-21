@@ -9,9 +9,10 @@ using CUDA
 include("VAE.jl")
 include("data_manipulation/data_loader_MNIST.jl")
 include("data_manipulation/data_loader_OCT.jl")
+include("generate_image.jl")
 
-function train!(model, x, opt, ps, y, loss_saver, vgg, loss_normalizers)
-    batch_loss, back = Flux.pullback(() -> loss(model, x, y, loss_saver, vgg, loss_normalizers), ps)
+function train!(model, x, opt, ps, y, loss_saver, vgg, loss_normalizers, epoch)
+    batch_loss, back = Flux.pullback(() -> loss(model, x, y, loss_saver, vgg, loss_normalizers, epoch), ps)
     grads = back(1)
     Optimise.update!(opt, ps, grads)
     nothing
@@ -21,7 +22,7 @@ function get_dataloader(data_name, data_path, batch_size)
     if data_name == "OCT"
         return DataLoaderOCT(data_path, batch_size, true)
     else
-        return DataLoaderMNIST(data_path, batch_size) #|> DEVICE
+        return DataLoaderMNIST(data_path, batch_size)
     end
 end
 
@@ -34,6 +35,7 @@ function save_model(data_name, save_nr, vae)
 
     save_path = "saved_models/$(data_name)_epoch_$(save_nr).jld2"
     save(save_path, "vae", vae)
+    println("saved model to $save_path")
 
     vae.encoder = vae.encoder |> DEVICE
     vae.μ_layer = vae.μ_layer |> DEVICE
@@ -43,20 +45,22 @@ function save_model(data_name, save_nr, vae)
 end
 
 function main()
-    epochs = 1
+    epochs = 2
     load_model_nr = 1
-    data_name = "MNIST"
-    data_path = "data/MNIST_small"
-    # data_name = "OCT"
-    # data_path = "data/data_resized/bm3d_496_512_train"
+    # data_name = "MNIST"
+    # data_path = "data/MNIST_small"
+    data_name = "OCT"
+    data_path = "data/data_resized/bm3d_496_512_train"
+
+    # data_path = "data/data_resized/bm3d_496_512_test"
 
     model_name = "$(data_name)_epoch_$(load_model_nr).jld2"
 
     loader = get_dataloader(data_name, data_path, BATCH_SIZE)
 
     # Initialize CUDA before loading the model
-    CUDA.allowscalar(false)
-    CUDA.device!(0)  # change 0 to the ID of your GPU, if you have more than one
+    # CUDA.allowscalar(false)
+    # CUDA.device!(0)  # change 0 to the ID of your GPU, if you have more than one
 
     if load_model_nr > 0
         vae = load("saved_models/" * model_name, "vae")
@@ -77,11 +81,17 @@ function main()
     opt = ADAM(0.001)
 
     vgg = vgg_subnetworks()
+    # vgg = nothing
 
     start_time = time()
     loss_list_rec_saver = []
     loss_list_kl_saver = []
     for epoch in 1:epochs
+        if load_model_nr > 0
+            save_nr = load_model_nr + epoch
+        else
+            save_nr = epoch
+        end
         loss_normalizer_mse = LossNormalizer()
         loss_normalizer2 = LossNormalizer()
         loss_normalizer9 = LossNormalizer()
@@ -98,7 +108,7 @@ function main()
             images = images |> DEVICE
             labels = labels |> DEVICE
 
-            train!(vae, images, opt, ps, labels, loss_saver, vgg, loss_normalizers)
+            train!(vae, images, opt, ps, labels, loss_saver, vgg, loss_normalizers, save_nr)
         end
 
         elapsed_time = time() - start_time
@@ -116,15 +126,11 @@ function main()
         # Reset the loader for the next epoch
         loader = get_dataloader(data_name, data_path, BATCH_SIZE)
 
-        if load_model_nr > 0
-            save_nr = load_model_nr + epoch
-        else
-            save_nr = epoch
-        end
         save_model(data_name, save_nr, vae)
         # save_path = "saved_models/$(data_name)_epoch_$(save_nr).jld2"
         # save(save_path, "vae", vae)
         # println("saved model to $save_path")
+        output_image(vae, loader; epoch=save_nr)
     end
     return nothing
 end

@@ -120,10 +120,8 @@ function next_batch(loader::DataLoaderOCT, start_idx::Int)
 
             # Generate a random starting height for cropping (the upper bound ensures the cropped portion will fit within the image)
             start_h = rand(1:(496-400+1))
-
             # Select a 400x512 portion of the image from the random start height to start height + 399
             image = image[start_h:(start_h+399), :]
-
         else
             # Without data augmentation, just center crop the image
             start_h = Int(floor((496 - 400) / 2)) + 1

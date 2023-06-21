@@ -78,9 +78,15 @@ function create_decoder()
     #     # Dropout(0.1),
     #     ConvTranspose((3, 3), 64 => 1, stride = 2, pad = SamePad(), sigmoid),
     # ) |> DEVICE
+
+    function my_reshape(x)
+        return reshape(x, (7, 7, 512, :))
+    end
+
     return Chain(
         Dense(LATENT_DIM, 7 * 7 * 512, relu),
-        x -> reshape(x, (7, 7, 512, :)),
+        # x -> reshape(x, (7, 7, 512, :)),
+        my_reshape,
         ConvTranspose((3, 3), 512 => 256, stride = 2, pad = SamePad()),
         BatchNorm(256),
         relu,
@@ -98,7 +104,7 @@ function create_decoder()
 end
 
 # Define the VAE
-mutable struct VAE
+mutable struct VAE # TODO test to not have mutable
     encoder::Chain
     μ_layer::Dense
     logvar_layer::Dense
@@ -302,13 +308,24 @@ end
 #     return loss2 * 0.6f0 + loss9 * 0.2f0 + loss_mse * 0.2f0
 # end
 function vgg_loss(decoded, x, vgg, loss_normalizers)
+    normalizing_factors = Dict(
+        "loss_mse" => Float32(32.4141831),
+        "loss2" => Float32(7.55499029),
+        "loss9" => Float32(0.235879934),
+    )
+    weight_factors = Dict(
+        "loss_mse" => Float32(1/3),
+        "loss2" => Float32(1/3),
+        "loss9" => Float32(1/3),
+    )
+    # weight_factors = Dict("loss_mse" => 0.0f0, "loss2" => 1.0f0, "loss9" => 0.0f0)
     (vgg_layer2, vgg_layer9) = vgg
     (loss_normalizer_mse, loss_normalizer2, loss_normalizer9) = loss_normalizers
 
     # Calculate and normalize the MSE loss
     loss_mse = sum(mean((decoded .- x).^2, dims=(1,2,3)))
-    update_normalizer!(loss_normalizer_mse, loss_mse)
-    loss_mse = normalize(loss_normalizer_mse, loss_mse)
+    # update_normalizer!(loss_normalizer_mse, loss_mse)
+    # loss_mse = normalize(loss_normalizer_mse, loss_mse)
 
     decoded = convert_to_rgb(decoded)
     x = convert_to_rgb(x)
@@ -319,8 +336,8 @@ function vgg_loss(decoded, x, vgg, loss_normalizers)
 
     # Calculate and normalize the loss for the first layer
     loss2 = sum(mean((decoded_feature2 .- x_feature2).^2, dims=(1,2,3)))
-    update_normalizer!(loss_normalizer2, loss2)
-    loss2 = normalize(loss_normalizer2, loss2)
+    # update_normalizer!(loss_normalizer2, loss2)
+    # loss2 = normalize(loss_normalizer2, loss2)
 
     # Use the second subnetwork for the second layer, taking the output of the first subnetwork as input
     decoded_feature9 = vgg_layer9(decoded_feature2)
@@ -328,27 +345,43 @@ function vgg_loss(decoded, x, vgg, loss_normalizers)
 
     # Calculate and normalize the loss for the second layer
     loss9 = sum(mean((decoded_feature9 .- x_feature9).^2, dims=(1,2,3)))
+    # update_normalizer!(loss_normalizer9, loss9)
+    # loss9 = normalize(loss_normalizer9, loss9)
+    loss_mse *= weight_factors["loss_mse"] * normalizing_factors["loss_mse"]
+    loss2 *= weight_factors["loss2"] * normalizing_factors["loss2"]
+    loss9 *= weight_factors["loss9"] * normalizing_factors["loss9"]
+    update_normalizer!(loss_normalizer_mse, loss_mse)
+    update_normalizer!(loss_normalizer2, loss2)
     update_normalizer!(loss_normalizer9, loss9)
-    loss9 = normalize(loss_normalizer9, loss9)
-
-    # Weights for the losses might need to be adjusted based on your needs
-    return loss_mse * 0.1f0 + loss2 * 0.65f0 + loss9 * 0.25f0
+    if loss_normalizer_mse.count % 200 == 0
+        @show loss_normalizer_mse.sum / loss_normalizer_mse.count
+        @show loss_normalizer2.sum / loss_normalizer2.count
+        @show loss_normalizer9.sum / loss_normalizer9.count
+    end
+    return loss_mse + loss2 + loss9
 end
 
 
-function loss(m::VAE, x, y, loss_saver::LossSaver, vgg, loss_normalizers)
+function loss(m::VAE, x, y, loss_saver::LossSaver, vgg, loss_normalizers, epoch)
     decoded, μ, logvar = m(x)
-    reconstruction_loss = sum(mean((decoded .- x).^2, dims=(1,2,3)))
-    # reconstruction_loss = vgg_loss(decoded, x, vgg, loss_normalizers)
+    # reconstruction_loss = sum(mean((decoded .- x).^2, dims=(1,2,3)))
+    reconstruction_loss = vgg_loss(decoded, x, vgg, loss_normalizers)
 
     kl_divergence = -0.5 .* sum(1 .+ logvar .- μ .^ 2 .- exp.(logvar))
+    # kl_divergence = 0.0f0
 
     # β = 3.2 * 10^(-4) * 4
-    β = 3.2 * 10^(-4) * 10
+    # β = 3.2 * 10^(-4) * 10
+    β_factor = min(epoch / 30, 1.0f0)
+    β = 10^(-3) * β_factor
 
     kl_divergence = β .* kl_divergence
-
     update_gl_balance!(loss_saver, kl_divergence, reconstruction_loss)
+    if loss_saver.counter % 200 == 0
+        @show loss_saver.avg_kl / loss_saver.counter
+        @show loss_saver.avg_rec / loss_saver.counter
+        println()
+    end
     return reconstruction_loss + kl_divergence
 end
 
