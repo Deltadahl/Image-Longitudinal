@@ -45,8 +45,8 @@ function save_model(data_name, save_nr, vae)
 end
 
 function main()
-    epochs = 2
-    load_model_nr = 1
+    epochs = 1
+    load_model_nr = 0
     # data_name = "MNIST"
     # data_path = "data/MNIST_small"
     data_name = "OCT"
@@ -130,7 +130,7 @@ function main()
         # save_path = "saved_models/$(data_name)_epoch_$(save_nr).jld2"
         # save(save_path, "vae", vae)
         # println("saved model to $save_path")
-        output_image(vae, loader; epoch=save_nr)
+        output_image(vae, loader; epoch=save_nr) # TODO REMOVE OR USE NEW LOADER, THIS uses up the first batch.
     end
     return nothing
 end
