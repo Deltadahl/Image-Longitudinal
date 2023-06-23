@@ -45,8 +45,8 @@ function save_model(data_name, save_nr, vae)
 end
 
 function main()
-    epochs = 1
-    load_model_nr = 0
+    epochs = 100000
+    load_model_nr = 147
     # data_name = "MNIST"
     # data_path = "data/MNIST_small"
     data_name = "OCT"
@@ -87,6 +87,7 @@ function main()
     loss_list_rec_saver = []
     loss_list_kl_saver = []
     for epoch in 1:epochs
+        # perceptual_loss = vae.encoder.copy() |> DEVICE # TODO
         if load_model_nr > 0
             save_nr = load_model_nr + epoch
         else
@@ -121,7 +122,10 @@ function main()
         epoch_loss = rec_loss + kl_loss
         push!(loss_list_rec_saver, rec_loss)
         push!(loss_list_kl_saver, kl_loss)
-        println("Loss tot: $(Printf.@sprintf("%.8f", epoch_loss))\nLoss rec: $(Printf.@sprintf("%.8f", rec_loss))\nLoss kl:  $(Printf.@sprintf("%.8f", kl_loss))")
+        println("Loss tot: $(Printf.@sprintf("%.5f", epoch_loss))\nLoss rec: $(Printf.@sprintf("%.5f", rec_loss))\nLoss kl:  $(Printf.@sprintf("%.5f", kl_loss))")
+        println("Loss MSE: $(Printf.@sprintf("%.5f", loss_normalizer_mse.sum / loss_normalizer_mse.count))")
+        println("Loss L2:  $(Printf.@sprintf("%.5f", loss_normalizer2.sum / loss_normalizer2.count))")
+        println("Loss L9:  $(Printf.@sprintf("%.5f", loss_normalizer9.sum / loss_normalizer9.count))")
 
         # Reset the loader for the next epoch
         loader = get_dataloader(data_name, data_path, BATCH_SIZE)

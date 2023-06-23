@@ -86,7 +86,7 @@ function main()
     # data_path = "data/MNIST_small"
     data_name = "OCT"
     data_path = "data/data_resized/bm3d_496_512_test" # have train here just to see what the images look like
-    epoch = 19
+    epoch = 1
 
     model_path = "saved_models/$(data_name)_epoch_$(epoch).jld2"
     vae = load(model_path, "vae")
@@ -100,7 +100,7 @@ function main()
     if data_name == "OCT"
         loader = DataLoaderOCT(data_path, BATCH_SIZE, false) # Have true here just to see what the images look like
     else
-        loader = DataLoaderMNIST(data_path, BATCH_SIZE) # |> DEVICE
+        loader = DataLoaderMNIST(data_path, BATCH_SIZE)
     end
     output_image(vae, loader)
     return nothing

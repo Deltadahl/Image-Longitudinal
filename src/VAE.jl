@@ -44,19 +44,16 @@ function create_μ_logvar_layers()
     return Dense(OUTPUT_SIZE_ENCODER, LATENT_DIM),  Dense(OUTPUT_SIZE_ENCODER, LATENT_DIM)
 end
 
-function my_reshape(x)
-    return reshape(x, (7, 7, 512, :))
-end
 
 # Define the decoder
 function create_decoder()
     # return Chain(
-    #     Dense(LATENT_DIM, 7 * 7 * 64, relu),
-    #     x -> reshape(x, (7, 7, 64, :)),
-    #     ConvTranspose((3, 3), 64 => 64, stride = 1, pad = SamePad(), leakyrelu),
-    #     BatchNorm(64),
-    #     Dropout(0.2),
-    #     ConvTranspose((3, 3), 64 => 64, stride = 1, pad = SamePad(), leakyrelu),
+        #     Dense(LATENT_DIM, 7 * 7 * 64, relu),
+        #     x -> reshape(x, (7, 7, 64, :)),
+        #     ConvTranspose((3, 3), 64 => 64, stride = 1, pad = SamePad(), leakyrelu),
+        #     BatchNorm(64),
+        #     Dropout(0.2),
+        #     ConvTranspose((3, 3), 64 => 64, stride = 1, pad = SamePad(), leakyrelu),
     #     BatchNorm(64),
     #     Dropout(0.1),
     #     ConvTranspose((3, 3), 64 => 32, stride = 2, pad = SamePad(), leakyrelu),
@@ -66,12 +63,12 @@ function create_decoder()
     # ) |> DEVICE
 
     # return Chain(
-    #     Dense(LATENT_DIM, 7 * 7 * 256, relu),
-    #     x -> reshape(x, (7, 7, 256, :)),
-    #     ConvTranspose((3, 3), 256 => 128, stride = 2, pad = SamePad(), relu),
-    #     BatchNorm(128),
-    #     # Dropout(0.1),
-    #     ConvTranspose((3, 3), 128 => 128, stride = 2, pad = SamePad(), relu),
+        #     Dense(LATENT_DIM, 7 * 7 * 256, relu),
+        #     x -> reshape(x, (7, 7, 256, :)),
+        #     ConvTranspose((3, 3), 256 => 128, stride = 2, pad = SamePad(), relu),
+        #     BatchNorm(128),
+        #     # Dropout(0.1),
+        #     ConvTranspose((3, 3), 128 => 128, stride = 2, pad = SamePad(), relu),
     #     BatchNorm(128),
     #     # Dropout(0.1),
     #     ConvTranspose((3, 3), 128 => 64, stride = 2, pad = SamePad(), relu),
@@ -84,10 +81,13 @@ function create_decoder()
     # ) |> DEVICE
 
 
+    # function my_reshape(x)
+    #     return reshape(x, (7, 7, 512, :))
+    # end
+
     return Chain(
         Dense(LATENT_DIM, 7 * 7 * 512, relu),
         x -> reshape(x, (7, 7, 512, :)),
-        # reshape((7, 7, 512, :)),
         # my_reshape,
         ConvTranspose((3, 3), 512 => 256, stride = 2, pad = SamePad()),
         BatchNorm(256),
@@ -188,13 +188,13 @@ end
 function vgg_loss(decoded, x, vgg, loss_normalizers)
     normalizing_factors = Dict(
         "loss_mse" => Float32(32.4141831),
-        "loss2" => Float32(7.55499029),
-        "loss9" => Float32(0.235879934),
+        "loss2" => Float32(7.55499029/11.27),
+        "loss9" => Float32(0.235879934/4.3),
     )
     weight_factors = Dict(
-        "loss_mse" => Float32(1/3),
-        "loss2" => Float32(1/3),
-        "loss9" => Float32(1/3),
+        "loss_mse" => Float32(1/2),
+        "loss2" => Float32(0),
+        "loss9" => Float32(1/2),
     )
 
     (vgg_layer2, vgg_layer9) = vgg
@@ -232,7 +232,7 @@ function vgg_loss(decoded, x, vgg, loss_normalizers)
     update_normalizer!(loss_normalizer_mse, loss_mse)
     update_normalizer!(loss_normalizer2, loss2)
     update_normalizer!(loss_normalizer9, loss9)
-    if loss_normalizer_mse.count % 200 == 0
+    if loss_normalizer_mse.count % 10 == 0
         @show loss_normalizer_mse.sum / loss_normalizer_mse.count
         @show loss_normalizer2.sum / loss_normalizer2.count
         @show loss_normalizer9.sum / loss_normalizer9.count
@@ -251,21 +251,21 @@ function loss(m::VAE, x, y, loss_saver::LossSaver, vgg, loss_normalizers, epoch)
 
     # β = 3.2 * 10^(-4) * 4
     # β = 3.2 * 10^(-4) * 10
-    β_factor = min(epoch / 10, 1.0f0)
+    β_factor = min(epoch / 10, 5.0f0)
 
-    if β_factor == 1.0f0
-        β_factor = 2.0 + cos(epoch / 10 * π)
+    if β_factor == 4.0f0
+        β_factor = 5.0 + cos(epoch / 10 * π)
     end
 
     β = Float32(10^(-3) * β_factor)
 
     kl_divergence = β .* kl_divergence
     update_gl_balance!(loss_saver, kl_divergence, reconstruction_loss)
-    if loss_saver.counter % 200 == 0
-        @show loss_saver.avg_kl / loss_saver.counter
-        @show loss_saver.avg_rec / loss_saver.counter
-        println()
-    end
+    # if loss_saver.counter % 1000 == 0
+    #     @show loss_saver.avg_kl / loss_saver.counter
+    #     @show loss_saver.avg_rec / loss_saver.counter
+    #     println()
+    # end
     return reconstruction_loss + kl_divergence
 end
 
