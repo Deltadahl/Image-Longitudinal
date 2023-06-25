@@ -11,8 +11,8 @@ include("data_manipulation/data_loader_MNIST.jl")
 include("data_manipulation/data_loader_OCT.jl")
 include("generate_image.jl")
 
-function train!(model, x, opt, ps, y, loss_saver, vgg, loss_normalizers, epoch)
-    batch_loss, back = Flux.pullback(() -> loss(model, x, y, loss_saver, vgg, loss_normalizers, epoch), ps)
+function train!(model, x, opt, ps, y, loss_saver, vgg, loss_normalizers, epoch, encoder_loss)
+    batch_loss, back = Flux.pullback(() -> loss(model, x, y, loss_saver, vgg, loss_normalizers, epoch, encoder_loss), ps)
     grads = back(1)
     Optimise.update!(opt, ps, grads)
     nothing
@@ -46,7 +46,7 @@ end
 
 function main()
     epochs = 100000
-    load_model_nr = 147
+    load_model_nr = 0
     # data_name = "MNIST"
     # data_path = "data/MNIST_small"
     data_name = "OCT"
@@ -80,14 +80,17 @@ function main()
     ps = params(vae)
     opt = ADAM(0.001)
 
-    vgg = vgg_subnetworks()
-    # vgg = nothing
+    # vgg = vgg_subnetworks()
+    vgg = nothing
 
     start_time = time()
     loss_list_rec_saver = []
     loss_list_kl_saver = []
     for epoch in 1:epochs
-        # perceptual_loss = vae.encoder.copy() |> DEVICE # TODO
+        encoder = deepcopy(vae.encoder) |> DEVICE # TODO
+        encoder_loss = encoder
+        # encoder_loss = nothing
+
         if load_model_nr > 0
             save_nr = load_model_nr + epoch
         else
@@ -109,7 +112,7 @@ function main()
             images = images |> DEVICE
             labels = labels |> DEVICE
 
-            train!(vae, images, opt, ps, labels, loss_saver, vgg, loss_normalizers, save_nr)
+            train!(vae, images, opt, ps, labels, loss_saver, vgg, loss_normalizers, save_nr, encoder_loss)
         end
 
         elapsed_time = time() - start_time
