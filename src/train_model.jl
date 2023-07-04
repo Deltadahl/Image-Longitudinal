@@ -11,8 +11,8 @@ include("data_manipulation/data_loader_MNIST.jl")
 include("data_manipulation/data_loader_OCT.jl")
 include("generate_image.jl")
 
-function train!(model, x, opt, ps, y, loss_saver, vgg, loss_normalizers, epoch, encoder_loss)
-    batch_loss, back = Flux.pullback(() -> loss(model, x, y, loss_saver, vgg, loss_normalizers, epoch, encoder_loss), ps)
+function train!(model, x, opt, ps, y, loss_saver, vgg, loss_normalizers, epoch)
+    batch_loss, back = Flux.pullback(() -> loss(model, x, y, loss_saver, vgg, loss_normalizers, epoch), ps)
     grads = back(1)
     Optimise.update!(opt, ps, grads)
     nothing
@@ -46,21 +46,16 @@ end
 
 function main()
     epochs = 100000
-    load_model_nr = 0
+    load_model_nr = 39
     # data_name = "MNIST"
     # data_path = "data/MNIST_small"
     data_name = "OCT"
-    data_path = "data/data_resized/bm3d_496_512_train"
-
+    data_path = "data/data_resized/bm3d_224_train"
     # data_path = "data/data_resized/bm3d_496_512_test"
 
     model_name = "$(data_name)_epoch_$(load_model_nr).jld2"
 
     loader = get_dataloader(data_name, data_path, BATCH_SIZE)
-
-    # Initialize CUDA before loading the model
-    # CUDA.allowscalar(false)
-    # CUDA.device!(0)  # change 0 to the ID of your GPU, if you have more than one
 
     if load_model_nr > 0
         vae = load("saved_models/" * model_name, "vae")
@@ -71,6 +66,24 @@ function main()
         vae = VAE(encoder, μ_layer, logvar_layer, decoder)
     end
 
+    function print_layers(model)
+        for (i, layer) in enumerate(model)
+            println("layer $i: ", repr(layer))
+        end
+    end
+
+    function print_vae(vae::VAE)
+        println("Encoder Layers:")
+        print_layers(vae.encoder.layers)
+        println("\nμ layer: ", repr(vae.μ_layer))
+        println("logvar layer: ", repr(vae.logvar_layer))
+        println("\nDecoder Layers:")
+        print_layers(vae.decoder.layers)
+    end
+
+    # To print the VAE structure:
+    print_vae(vae)
+
     vae.encoder = vae.encoder |> DEVICE
     vae.μ_layer = vae.μ_layer |> DEVICE
     vae.logvar_layer = vae.logvar_layer |> DEVICE
@@ -78,19 +91,18 @@ function main()
     vae = vae |> DEVICE
 
     ps = params(vae)
-    opt = ADAM(0.001)
+    η₀ = 0.001  # initial learning rate
+    decay = 0.96
+    opt = ADAM(η₀)
 
-    # vgg = vgg_subnetworks()
-    vgg = nothing
+    vgg = vgg_subnetworks()
+    # vgg = nothing
 
     start_time = time()
     loss_list_rec_saver = []
     loss_list_kl_saver = []
     for epoch in 1:epochs
-        encoder = deepcopy(vae.encoder) |> DEVICE # TODO
-        encoder_loss = encoder
-        # encoder_loss = nothing
-
+        opt.eta = η₀ * decay^(epoch-1)
         if load_model_nr > 0
             save_nr = load_model_nr + epoch
         else
@@ -99,7 +111,8 @@ function main()
         loss_normalizer_mse = LossNormalizer()
         loss_normalizer2 = LossNormalizer()
         loss_normalizer9 = LossNormalizer()
-        loss_normalizers = [loss_normalizer_mse, loss_normalizer2, loss_normalizer9]
+        loss_normalizer_encoded = LossNormalizer()
+        loss_normalizers = [loss_normalizer_mse, loss_normalizer2, loss_normalizer9, loss_normalizer_encoded]
         loss_saver = LossSaver(0.0f0, 0.0f0, 0.0f0)
 
         println("Epoch: $epoch/$epochs")
@@ -112,7 +125,7 @@ function main()
             images = images |> DEVICE
             labels = labels |> DEVICE
 
-            train!(vae, images, opt, ps, labels, loss_saver, vgg, loss_normalizers, save_nr, encoder_loss)
+            train!(vae, images, opt, ps, labels, loss_saver, vgg, loss_normalizers, save_nr)
         end
 
         elapsed_time = time() - start_time
@@ -134,9 +147,6 @@ function main()
         loader = get_dataloader(data_name, data_path, BATCH_SIZE)
 
         save_model(data_name, save_nr, vae)
-        # save_path = "saved_models/$(data_name)_epoch_$(save_nr).jld2"
-        # save(save_path, "vae", vae)
-        # println("saved model to $save_path")
         output_image(vae, loader; epoch=save_nr) # TODO REMOVE OR USE NEW LOADER, THIS uses up the first batch.
     end
     return nothing

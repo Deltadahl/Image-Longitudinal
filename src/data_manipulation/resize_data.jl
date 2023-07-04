@@ -2,8 +2,8 @@ using Images
 using FileIO
 
 # Set the source and destination directories
-src_dir = "data/MNIST_small"
-dest_dir = "data/data_resized/MNIST_small_224"
+src_dir = "data/data_resized/bm3d_496_512_train"
+dest_dir = "data/data_resized/bm3d_224_train"
 
 # Create the destination directory if it does not exist
 !isdir(dest_dir) && mkdir(dest_dir)
@@ -11,7 +11,7 @@ dest_dir = "data/data_resized/MNIST_small_224"
 # Loop over all .jpeg files in the source directory
 for filename in readdir(src_dir)
     # if endswith(filename, ".jpeg")
-    if endswith(filename, ".png")
+    if endswith(filename, ".jpeg")
         # Load the image
         img = load(joinpath(src_dir, filename))
 

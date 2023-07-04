@@ -11,63 +11,20 @@ include("constants.jl")
 
 #Define the encoder
 function create_encoder()
-    # return Chain(
-    #     Conv((3, 3), 1 => 32, stride = 2, pad = SamePad(), leakyrelu),
-    #     BatchNorm(32),
-    #     Dropout(0.2),
-    #     Conv((3, 3), 32 => 64, stride = 2, pad = SamePad(), leakyrelu),
-    #     BatchNorm(64),
-    #     Dropout(0.2),
-    #     Conv((3, 3), 64 => 64, stride = 1, pad = SamePad(), leakyrelu),
-    #     BatchNorm(64),
-    #     Dropout(0.2),
-    #     Conv((3, 3), 64 => 64, stride = 1, pad = SamePad(), leakyrelu),
-    #     BatchNorm(64),
-    #     Dropout(0.2),
-    #     Flux.flatten,
-    # ) |> DEVICE
     # model_base = EfficientNet(:b0, inchannels = 1, nclasses = OUTPUT_SIZE_ENCODER)
-    # model_base = ResNet(18; inchannels = 1, nclasses = OUTPUT_SIZE_ENCODER)
-    model_base = ResNet(50; inchannels = 1, nclasses = OUTPUT_SIZE_ENCODER)
     # model_base = EfficientNetv2(:small, inchannels = 1, nclasses = OUTPUT_SIZE_ENCODER)
+    model_base = ResNet(18; inchannels = 1, nclasses = OUTPUT_SIZE_ENCODER)
     model = Chain(model_base, relu)
-
-
-    # model = ResNet(18; pretrain = true)
-    # model = ConvNeXt(:tiny;) # Slow and quite bad, but does WORKING
-    # model = EfficientNet(:b0, inchannels = 1, nclasses = OUTPUT_SIZE_ENCODER)
-    # model = EfficientNetv2(:small, inchannels = 1, nclasses = OUTPUT_SIZE_ENCODER)
     return model
 end
 
 # Define the mean and log variance layers
 function create_μ_logvar_layers()
-    # return Dense(7 * 7 * 64, LATENT_DIM) |> DEVICE,  Dense(7 * 7 * 64, LATENT_DIM) |> DEVICE
     return Dense(OUTPUT_SIZE_ENCODER, LATENT_DIM),  Dense(OUTPUT_SIZE_ENCODER, LATENT_DIM)
 end
 
-
-
 # Define the decoder
 function create_decoder()
-    # return Chain(
-    #     Dense(LATENT_DIM, 7 * 7 * 512, relu),
-    #     x -> reshape(x, (7, 7, 512, :)),
-    #     ConvTranspose((3, 3), 512 => 256, stride = 2, pad = SamePad()),
-    #     BatchNorm(256),
-    #     relu,
-    #     ConvTranspose((3, 3), 256 => 128, stride = 2, pad = SamePad()),
-    #     BatchNorm(128),
-    #     relu,
-    #     ConvTranspose((3, 3), 128 => 64, stride = 2, pad = SamePad()),
-    #     BatchNorm(64),
-    #     relu,
-    #     ConvTranspose((3, 3), 64 => 32, stride = 2, pad = SamePad()),
-    #     BatchNorm(32),
-    #     relu,
-    #     ConvTranspose((3, 3), 32 => 1, stride = 2, pad = SamePad(), sigmoid),
-    # )
-
     return Chain(
         Dense(LATENT_DIM, 7 * 7 * 1024, relu),
         x -> reshape(x, (7, 7, 1024, :)),
@@ -139,12 +96,6 @@ Zygote.@nograd function update_gl_balance!(loss_saver::LossSaver,  kl_div, rec)
     loss_saver.counter += 1.0f0
 end
 
-function convert_to_rgb(images::CuArray{Float32, 4})
-    # Broadcast grayscale image along the channel dimension
-    return cat(images, images, images, dims=3) |> DEVICE
-
-end
-
 struct RGBReplicationLayer end
 Flux.@functor RGBReplicationLayer
 (m::RGBReplicationLayer)(x) = cat(x, x, x, dims=3) |> DEVICE
@@ -158,9 +109,40 @@ function vgg_subnetworks()
 
     vgg_layer2_gray = Chain(RGBReplicationLayer(), vgg_layer2)
 
+    # Function to print details of Conv layers
+    # function print_conv_details(layer)
+    #     println("Conv Layer: input channels = $(size(layer.weight, 3)), output channels = $(size(layer.weight, 4)), kernel size = $(size(layer.weight, 1))x$(size(layer.weight, 2))")
+    # end
+
+    # Print out the layers of the full VGG16 network
+    # println("VGG16 layers:")
+    # for (i, layer) in enumerate(vgg.layers)
+    #     println("Layer $i: $(typeof(layer))")
+    #     if layer isa Conv
+    #         print_conv_details(layer)
+    #     end
+    # end
+
+    # # Print out the layers of the first subnetwork
+    # println("vgg_layer2_gray layers:")
+    # for (i, layer) in enumerate(vgg_layer2_gray.layers)
+    #     println("Layer $i: $(typeof(layer))")
+    #     if layer isa Conv
+    #         print_conv_details(layer)
+    #     end
+    # end
+
+    # # Print out the layers of the second subnetwork
+    # println("vgg_layer9 layers:")
+    # for (i, layer) in enumerate(vgg_layer9.layers)
+    #     println("Layer $i: $(typeof(layer))")
+    #     if layer isa Conv
+    #         print_conv_details(layer)
+    #     end
+    # end
+
     return (vgg_layer2_gray, vgg_layer9)
 end
-
 mutable struct LossNormalizer
     sum::Float32
     count::Int32
@@ -181,49 +163,42 @@ function normalize_image_net(images::CuArray{Float32, 4})
     return normalized_images
 end
 
-function normalize(normalizer::LossNormalizer, value::Float32)
-    return value / (normalizer.sum / normalizer.count)
-end
-
-function vgg_loss(decoded, x, vgg, loss_normalizers)
+function vgg_loss(decoded, x, vgg, loss_normalizers, epoch, m)
     normalizing_factors = Dict(
-        "loss_mse" => Float32(32.4141831),
-        "loss2" => Float32(7.55499029/11.27),
-        "loss9" => Float32(0.235879934/4.3),
+        "loss_mse" => Float32(24.31242),
+        "loss2" => Float32(0.757736837),
+        "loss9" => Float32(0.0618715362),
     )
+
     weight_factors = Dict(
-        "loss_mse" => Float32(3/10),
-        "loss2" => Float32(3/10),
-        "loss9" => Float32(4/10),
+        "loss_mse" => Float32(0.5),
+        "loss2" => Float32(0),
+        "loss9" => Float32(0.5)),
     )
+    if epoch == 1
+        weight_factors = Dict(
+            "loss_mse" => Float32(1),
+            "loss2" => Float32(0),
+            "loss9" => Float32(0),
+        )
+    end
 
     (vgg_layer2, vgg_layer9) = vgg
-    (loss_normalizer_mse, loss_normalizer2, loss_normalizer9) = loss_normalizers
+    (loss_normalizer_mse, loss_normalizer2, loss_normalizer9, loss_normalizer_encoded) = loss_normalizers
 
-    # Calculate and normalize the MSE loss
     loss_mse = sum(mean((decoded .- x).^2, dims=(1,2,3)))
-
-    # decoded = convert_to_rgb(decoded)
-    # x = convert_to_rgb(x)
 
     # Use the first subnetwork for the first layer
     decoded = normalize_image_net(decoded)
     x = normalize_image_net(x)
     decoded_feature2 = vgg_layer2(decoded)
     x_feature2 = vgg_layer2(x)
-
-    # # Use the first subnetwork for the first layer
-    # decoded_feature2 = vgg_layer2(decoded)
-    # x_feature2 = vgg_layer2(x)
-
-    # Calculate and normalize the loss for the first layer
     loss2 = sum(mean((decoded_feature2 .- x_feature2).^2, dims=(1,2,3)))
 
     # Use the second subnetwork for the second layer, taking the output of the first subnetwork as input
     decoded_feature9 = vgg_layer9(decoded_feature2)
     x_feature9 = vgg_layer9(x_feature2)
 
-    # Calculate and normalize the loss for the second layer
     loss9 = sum(mean((decoded_feature9 .- x_feature9).^2, dims=(1,2,3)))
 
     loss_mse *= weight_factors["loss_mse"] * normalizing_factors["loss_mse"]
@@ -240,37 +215,19 @@ function vgg_loss(decoded, x, vgg, loss_normalizers)
     return loss_mse + loss2 + loss9
 end
 
-
-function loss(m::VAE, x, y, loss_saver::LossSaver, vgg, loss_normalizers, epoch, encoder_loss_fn)
+function loss(m::VAE, x, y, loss_saver::LossSaver, vgg, loss_normalizers, epoch)
     decoded, μ, logvar = m(x)
-    # reconstruction_loss = sum(mean((decoded .- x).^2, dims=(1,2,3)))
-    # reconstruction_loss = vgg_loss(decoded, x, vgg, loss_normalizers)
-
-    x_μ = encoder_loss_fn(x)
-    decoded_μ = encoder_loss_fn(decoded)
-
-    encoder_weight = 1.0f0
-    mse_weight = 1.0f0
-    # if epoch < 2
-    #     encoder_weight = 0.0f0
-    # elseif epoch < 4
-    #     encoder_weight = 0.1f0
-    # end
-    encoder_loss = sum(mean((x_μ.- decoded_μ).^2, dims=(1,2,3))) * 300f0 * encoder_weight
-    mse_loss = sum(mean((decoded .- x).^2, dims=(1,2,3))) * 0.5f0 * mse_weight
-    reconstruction_loss = mse_loss + encoder_loss
+    if epoch == 1
+        reconstruction_loss = sum(mean((decoded .- x).^2, dims=(1,2,3))) * Float32(1/0.029 * (0.3333/0.51861))
+    else
+        reconstruction_loss = vgg_loss(decoded, x, vgg, loss_normalizers, epoch, m)
+    end
 
     kl_divergence = -0.5 .* sum(1 .+ logvar .- μ .^ 2 .- exp.(logvar))
-    # kl_divergence = 0.0f0
 
-    # β = 3.2 * 10^(-4) * 4
-    # β = 3.2 * 10^(-4) * 10
-    β_factor = min(epoch / 10, 5.0f0)
+    β_max = 5.0f0
+    β_factor = min(epoch / 2, β_max)
 
-    if β_factor == 4.0f0
-        β_factor = 5.0 + cos(epoch / 10 * π)
-    end
-    # β_factor *= (1/1000)
     β = Float32(10^(-3) * β_factor)
 
     kl_divergence = β .* kl_divergence
@@ -278,8 +235,6 @@ function loss(m::VAE, x, y, loss_saver::LossSaver, vgg, loss_normalizers, epoch,
     if loss_saver.counter % 100 == 0
         @show loss_saver.avg_kl / loss_saver.counter
         @show loss_saver.avg_rec / loss_saver.counter
-        @show encoder_loss
-        @show mse_loss
         println()
     end
     return reconstruction_loss + kl_divergence
