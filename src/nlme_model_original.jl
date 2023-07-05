@@ -1,8 +1,6 @@
 using Pumas
 using DeepPumas
 using CairoMakie
-using JLD2
-include("constants.jl")
 
 
 datamodel = @model begin
@@ -46,16 +44,8 @@ sim = simobs(datamodel, _pop, p; obstimes=0:0.01:10, simulate_error=false)
 
 η = zero_randeffs(datamodel, _pop, p)
 
-num_rand_effects = 3
-# load "output_matrix/testing_output.jld2" result
-@load "output_matrix/testing_output.jld2" result
-
-vae_η = randn(LATENT_DIM - num_rand_effects, length(_pop))
-ηM = randn(num_rand_effects, length(_pop))
-# fill ηM with 2.2958581   0.1355047   0.17932206
-for i = 1:length(_pop)
-  ηM[:, i] = [2.2958581, 0.1355047, 0.17932206]
-end
+vae_η = randn(128-3, length(_pop))
+ηM = randn(3, length(_pop))
 
 vae_features = vcat(vae_η, ηM)
 
