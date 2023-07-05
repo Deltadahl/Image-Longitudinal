@@ -29,12 +29,17 @@ function output_image(vae, loader; epoch=0)
     μ = vae.μ_layer(encoded)
     reconstructed = vae.decoder(μ)
 
+    reconstructed_x2 = vae.decoder(vae.μ_layer(vae.encoder(reconstructed)))
+
     # Convert the reconstructed tensor back to an image
     reconstructed = cpu(reconstructed[:,:,1,1])
     original_image = cpu(images[:,:,1,1])
+    reconstructed_x2 = cpu(reconstructed_x2[:,:,1,1])
 
     reconstructed_image = Images.colorview(Gray, reconstructed)  # remove the singleton dimensions
     original_image = Images.colorview(Gray, original_image)  # remove the singleton dimensions
+    reconstructed_x2 = Images.colorview(Gray, reconstructed_x2)  # remove the singleton dimensions
+
 
     # Save the reconstructed image
     if !isdir(OUTPUT_IMAGE_DIR)  # make output directory, (git ignored)
@@ -63,6 +68,9 @@ function output_image(vae, loader; epoch=0)
     path_to_image = joinpath(OUTPUT_IMAGE_DIR, "$new_integer-$epoch-generated_image.png")
     save(path_to_image, generated_image)
 
+    path_to_image = joinpath(OUTPUT_IMAGE_DIR, "$new_integer-$epoch-reconstructed_image_x2.png")
+    save(path_to_image, reconstructed_x2)
+
     # ----
 
     # encoded = vae.encoder(images)
@@ -85,6 +93,8 @@ function output_image(vae, loader; epoch=0)
     # reconstructed_image = Images.colorview(Gray, reconstructed)  # remove the singleton dimensions
     # path_to_image = joinpath(OUTPUT_IMAGE_DIR, "$new_integer-$epoch-reconstructed_image_altered.png")
     # save(path_to_image, reconstructed_image)
+
+    # ----
 
     return nothing
 end

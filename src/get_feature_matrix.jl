@@ -21,7 +21,8 @@ function get_matrix(vae, loader; epoch=0)
             break
         end
         images = images |> DEVICE
-        μ = vae.μ_layer(vae.encoder(images))
+        μ = cpu(vae.μ_layer(vae.encoder(images)))
+
 
         batch_size = min(size(μ, 2), pop_size - num_added)  # Add up to 100 samples
         latent_vae[:, num_added+1:num_added+batch_size] = μ[:, 1:batch_size]

@@ -9,6 +9,64 @@ include("VAE.jl")
 include("data_manipulation/data_loader_OCT.jl")
 
 
+# function get_feature_importance(vae::VAE, loader)
+#     # Initialize the feature importance vector
+#     feature_importance = zeros(LATENT_DIM) |> DEVICE
+#     n_images = 0
+
+#     for (images, _) in loader
+#         if images === nothing
+#             break
+#         end
+#         images = images |> DEVICE
+
+#         # Compute the latent variables for the images
+#         μ = vae.μ_layer(vae.encoder(images))
+
+#         # Compute the perturbation
+#         perturbation = randn(Float32, size(μ)) |> DEVICE
+
+#         # Get the actual batch size
+#         actual_batch_size = size(μ, 2)
+
+#         for i in 1:LATENT_DIM
+#             for j in 1:actual_batch_size  # Iterate over the actual batch size
+#                 # Create a perturbed copy of the latent variables
+#                 μ_perturbed = copy(μ[:, j])
+#                 μ_perturbed[i] += perturbation[i, j]
+
+#                 # Decode the images from the original and perturbed latent variables
+#                 decoded = vae.decoder(μ[:, j])
+#                 decoded_perturbed = vae.decoder(μ_perturbed)
+
+#                 # Compute the mean square error (MSE) between the decoded images
+#                 mse = mean((decoded .- decoded_perturbed).^2)
+
+#                 # Update the feature importance
+#                 feature_importance[i] += mse
+#             end
+#         end
+
+#         # Keep track of the total number of images
+#         n_images += actual_batch_size  # Update the number of processed images
+#     end
+
+#     # Normalize the feature importance vector
+#     feature_importance ./= n_images
+#     feature_importance = cpu(feature_importance)
+#     feature_importance_pairs = [(i, feature_importance[i]) for i in 1:LATENT_DIM]
+
+#     # Sort by importance, in descending order
+#     sorted_importance = sort(feature_importance_pairs, by = x -> x[2], rev=true)
+
+#     # Print features and their importance, from most to least important
+#     for (feature, importance) in sorted_importance
+#         println("Feature $feature, error $importance")
+#     end
+
+#     return feature_importance
+# end
+
 function get_feature_importance(vae::VAE, loader)
     # Initialize the feature importance vector
     feature_importance = zeros(LATENT_DIM)
@@ -21,41 +79,32 @@ function get_feature_importance(vae::VAE, loader)
         images = images |> DEVICE
 
         # Compute the latent variables for the images
-        encoded = vae.encoder(images)
-        μ = vae.μ_layer(encoded)
-        logvar = vae.logvar_layer(encoded)
+        μ = vae.μ_layer(vae.encoder(images))
 
         # Compute the perturbation
         perturbation = randn(Float32, size(μ)) |> DEVICE
 
-        # Get the actual batch size
-        actual_batch_size = size(μ, 2)
-
         for i in 1:LATENT_DIM
-            for j in 1:actual_batch_size  # Iterate over the actual batch size
-                # Create a perturbed copy of the latent variables
-                μ_perturbed = copy(μ[:, j])
-                μ_perturbed[i] += perturbation[i, j]
+            # Create a perturbed copy of the latent variables
+            μ_perturbed = copy(μ)
+            μ_perturbed[i, :] .+= perturbation[i, :]
 
-                # Decode the images from the original and perturbed latent variables
-                decoded = vae.decoder(μ[:, j])
-                decoded_perturbed = vae.decoder(μ_perturbed)
+            # Decode the images from the original and perturbed latent variables
+            decoded = vae.decoder(μ)
+            decoded_perturbed = vae.decoder(μ_perturbed)
 
-                # Compute the mean square error (MSE) between the decoded images
-                mse = mean((decoded .- decoded_perturbed).^2)
+            # Compute the mean square error (MSE) between the decoded images
+            mse = mean((decoded .- decoded_perturbed).^2, dims=(1,2,3))
 
-                # Update the feature importance
-                feature_importance[i] += mse
-            end
+            # Update the feature importance
+            feature_importance[i] += sum(mse)
+            n_images += size(mse, 1)  # Update the number of processed images
         end
-
-        # Keep track of the total number of images
-        n_images += actual_batch_size  # Update the number of processed images
     end
 
     # Normalize the feature importance vector
     feature_importance ./= n_images
-
+    feature_importance = cpu(feature_importance)
     feature_importance_pairs = [(i, feature_importance[i]) for i in 1:LATENT_DIM]
 
     # Sort by importance, in descending order
@@ -68,6 +117,7 @@ function get_feature_importance(vae::VAE, loader)
 
     return feature_importance
 end
+
 
 
 function main()

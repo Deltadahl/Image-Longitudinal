@@ -49,8 +49,6 @@ sim = simobs(datamodel, _pop, p; obstimes=0:0.01:10, simulate_error=false)
 @load "/home/jrun/data/code/TemporalRetinaVAE/output_matrix/testing_output.jld2" latent_vae
 @show size(latent_vae)
 
-# vae_η = randn(LATENT_DIM - η_size, length(_pop))
-# ηM = randn(η_size, length(_pop))
 ηM = zeros(η_size, pop_size)
 
 selected_features = [7, 92, 78]

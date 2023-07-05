@@ -46,7 +46,7 @@ end
 
 function main()
     epochs = 100000
-    load_model_nr = 2
+    load_model_nr = 9
     # data_name = "MNIST"
     # data_path = "data/MNIST_small"
     data_name = "OCT"
