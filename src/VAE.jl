@@ -177,9 +177,9 @@ function vgg_loss(decoded, x, vgg, loss_normalizers, epoch, m)
     )
 
     weight_factors = Dict(
-        "loss_mse" => Float32(0.15),
-        "loss2" => Float32(0.5),
-        "loss9" => Float32(0.35),
+        "loss_mse" => Float32(1/3),
+        "loss2" => Float32(1/3),
+        "loss9" => Float32(1/3),
     )
 
     (vgg_layer2, vgg_layer9) = vgg
