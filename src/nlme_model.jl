@@ -46,22 +46,17 @@ sim = simobs(datamodel, _pop, p; obstimes=0:0.01:10, simulate_error=false)
 
 η = zero_randeffs(datamodel, _pop, p)
 
-@load "/home/jrun/data/code/TemporalRetinaVAE/output_matrix/testing_output.jld2" result
-@show size(η_vae)
+@load "/home/jrun/data/code/TemporalRetinaVAE/output_matrix/testing_output.jld2" latent_vae
+@show size(latent_vae)
 
 # vae_η = randn(LATENT_DIM - η_size, length(_pop))
 # ηM = randn(η_size, length(_pop))
-η_dynamic = zeros(η_size, pop_size)
+ηM = zeros(η_size, pop_size)
+
 selected_features = [7, 92, 78]
 for (i, feature_nr) in enumerate(selected_features)
-   = η_vae[, :]
+    ηM[i, :] = latent_vae[feature_nr, :]
 end
-# fill ηM with 2.2958581   0.1355047   0.17932206
-for i = 1:length(_pop)
-  ηM[:, i] = [2.2958581, 0.1355047, 0.17932206]
-end
-
-vae_features = vcat(vae_η, ηM)
 
 η = map(eachindex(_pop)) do i
   (; η = ηM[:, i])
@@ -70,7 +65,6 @@ end
 sim = simobs(datamodel, _pop, p, η; obstimes=0:0.01:10, simulate_error=false)
 
 plotgrid(sim[1:12]; sim = (; markersize=0))
-
 
 
 ####################################################
