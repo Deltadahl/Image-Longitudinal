@@ -2,8 +2,8 @@ using Images
 using FileIO
 
 # Set the source and destination directories
-src_dir = "data/data_resized/bm3d_496_512_train"
-dest_dir = "data/data_resized/bm3d_224_train"
+src_dir = "data/data_resized/bm3d_496_512_test"
+dest_dir = "data/data_resized/bm3d_224_test"
 
 # Create the destination directory if it does not exist
 !isdir(dest_dir) && mkdir(dest_dir)

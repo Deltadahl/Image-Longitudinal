@@ -1,4 +1,5 @@
 using Pumas
+using DeepPumas
 using CairoMakie
 
 
@@ -13,9 +14,9 @@ datamodel = @model begin
   @random η ~ MvNormal(Ω)
   @pre begin
     Ka = tvKa * exp(η[1])
-    Imax = tvImax * exp(η[2]) 
+    Imax = tvImax * exp(η[2])
     IC50 = tvIC50 * exp(η[3])
-  end  
+  end
   @dynamics begin
     Depot' = - Ka * Depot
     Central' = Ka * Depot - Imax * Central / (IC50 + Central)
@@ -79,9 +80,9 @@ model = @model begin
   @random η ~ MvNormal(Ω)
   @pre begin
     Ka = tvKa * exp(η[1])
-    Imax = tvImax * exp(η[2]) 
+    Imax = tvImax * exp(η[2])
     IC50 = tvIC50 * exp(η[3])
-  end  
+  end
   @dynamics begin
     Depot' = - Ka * Depot
     Central' = Ka * Depot - Imax * Central / (IC50 + Central)
@@ -93,7 +94,7 @@ end
 
 
 fpm = fit(
-  model, 
+  model,
   newpop,
   init_params(model),
   FOCE()

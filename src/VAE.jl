@@ -1,4 +1,4 @@
-# VAE_MNIST.jl
+# VAE.jl
 using Flux
 using Flux: Chain
 using CUDA
@@ -23,11 +23,16 @@ function create_μ_logvar_layers()
     return Dense(OUTPUT_SIZE_ENCODER, LATENT_DIM),  Dense(OUTPUT_SIZE_ENCODER, LATENT_DIM)
 end
 
+# Define a named function for the reshape operation
+function my_reshape(x)
+    return reshape(x, (7, 7, 1024, :))
+end
+
 # Define the decoder
 function create_decoder()
     return Chain(
         Dense(LATENT_DIM, 7 * 7 * 1024, relu),
-        x -> reshape(x, (7, 7, 1024, :)),
+        my_reshape,  # Use the named function instead of the anonymous function
         ConvTranspose((3, 3), 1024 => 512, stride = 1, pad = SamePad()),
         BatchNorm(512),
         relu,
@@ -62,8 +67,9 @@ function create_decoder()
     )
 end
 
+
 # Define the VAE
-mutable struct VAE # TODO test to not have mutable
+mutable struct VAE
     encoder::Chain
     μ_layer::Dense
     logvar_layer::Dense
@@ -165,23 +171,23 @@ end
 
 function vgg_loss(decoded, x, vgg, loss_normalizers, epoch, m)
     normalizing_factors = Dict(
-        "loss_mse" => Float32(24.31242),
-        "loss2" => Float32(0.757736837),
-        "loss9" => Float32(0.0618715362),
+        "loss_mse" => Float32(24.31242 * (1/3)/0.31685 * (1/3)/0.37620 * 0.8/0.655),
+        "loss2" => Float32(0.757736837 * (1/3)/0.41613 * (1/3)/0.33749),
+        "loss9" => Float32(0.0618715362 * (1/3)/0.38617 * (1/3)/0.33166 * 0.2/0.1718),
     )
 
     weight_factors = Dict(
-        "loss_mse" => Float32(0.5),
-        "loss2" => Float32(0),
-        "loss9" => Float32(0.5)),
+        "loss_mse" => Float32(0.8),
+        "loss2" => Float32(0.0),
+        "loss9" => Float32(0.2),
     )
-    if epoch == 1
-        weight_factors = Dict(
-            "loss_mse" => Float32(1),
-            "loss2" => Float32(0),
-            "loss9" => Float32(0),
-        )
-    end
+    # if epoch == 1
+    #     weight_factors = Dict(
+    #         "loss_mse" => Float32(1),
+    #         "loss2" => Float32(0),
+    #         "loss9" => Float32(0),
+    #     )
+    # end
 
     (vgg_layer2, vgg_layer9) = vgg
     (loss_normalizer_mse, loss_normalizer2, loss_normalizer9, loss_normalizer_encoded) = loss_normalizers
@@ -217,16 +223,17 @@ end
 
 function loss(m::VAE, x, y, loss_saver::LossSaver, vgg, loss_normalizers, epoch)
     decoded, μ, logvar = m(x)
-    if epoch == 1
+    if epoch ≤ 1
         reconstruction_loss = sum(mean((decoded .- x).^2, dims=(1,2,3))) * Float32(1/0.029 * (0.3333/0.51861))
     else
         reconstruction_loss = vgg_loss(decoded, x, vgg, loss_normalizers, epoch, m)
     end
 
+    # reconstruction_loss = vgg_loss(decoded, x, vgg, loss_normalizers, epoch, m)
     kl_divergence = -0.5 .* sum(1 .+ logvar .- μ .^ 2 .- exp.(logvar))
 
     β_max = 5.0f0
-    β_factor = min(epoch / 2, β_max)
+    β_factor = min(epoch, β_max)
 
     β = Float32(10^(-3) * β_factor)
 

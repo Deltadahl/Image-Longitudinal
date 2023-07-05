@@ -46,7 +46,7 @@ end
 
 function main()
     epochs = 100000
-    load_model_nr = 39
+    load_model_nr = 0
     # data_name = "MNIST"
     # data_path = "data/MNIST_small"
     data_name = "OCT"
@@ -92,7 +92,7 @@ function main()
 
     ps = params(vae)
     η₀ = 0.001  # initial learning rate
-    decay = 0.96
+    decay = 0.95
     opt = ADAM(η₀)
 
     vgg = vgg_subnetworks()
