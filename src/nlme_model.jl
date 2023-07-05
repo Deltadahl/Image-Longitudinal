@@ -4,6 +4,8 @@ using CairoMakie
 using JLD2
 include("constants.jl")
 
+pop_size = 100
+η_size = 3
 
 datamodel = @model begin
   @param begin
@@ -38,20 +40,22 @@ p = (
 )
 
 dr = DosageRegimen(1., addl=2, ii=2)
-_pop = [Subject(; id = i, events = dr, time=0:0.5:8) for i in 1:100]
-
+_pop = [Subject(; id = i, events = dr, time=0:0.5:8) for i in 1:pop_size]
 
 sim = simobs(datamodel, _pop, p; obstimes=0:0.01:10, simulate_error=false)
 
-
 η = zero_randeffs(datamodel, _pop, p)
 
-num_rand_effects = 3
-# load "output_matrix/testing_output.jld2" result
-@load "output_matrix/testing_output.jld2" result
+@load "/home/jrun/data/code/TemporalRetinaVAE/output_matrix/testing_output.jld2" result
+@show size(η_vae)
 
-vae_η = randn(LATENT_DIM - num_rand_effects, length(_pop))
-ηM = randn(num_rand_effects, length(_pop))
+# vae_η = randn(LATENT_DIM - η_size, length(_pop))
+# ηM = randn(η_size, length(_pop))
+η_dynamic = zeros(η_size, pop_size)
+selected_features = [7, 92, 78]
+for (i, feature_nr) in enumerate(selected_features)
+   = η_vae[, :]
+end
 # fill ηM with 2.2958581   0.1355047   0.17932206
 for i = 1:length(_pop)
   ηM[:, i] = [2.2958581, 0.1355047, 0.17932206]
