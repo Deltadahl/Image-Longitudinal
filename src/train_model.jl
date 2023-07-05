@@ -46,7 +46,7 @@ end
 
 function main()
     epochs = 100000
-    load_model_nr = 0
+    load_model_nr = 2
     # data_name = "MNIST"
     # data_path = "data/MNIST_small"
     data_name = "OCT"
@@ -102,7 +102,7 @@ function main()
     loss_list_rec_saver = []
     loss_list_kl_saver = []
     for epoch in 1:epochs
-        opt.eta = η₀ * decay^(epoch-1)
+        # opt.eta = η₀ * decay^(epoch-1)
         if load_model_nr > 0
             save_nr = load_model_nr + epoch
         else

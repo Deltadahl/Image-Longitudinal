@@ -177,17 +177,10 @@ function vgg_loss(decoded, x, vgg, loss_normalizers, epoch, m)
     )
 
     weight_factors = Dict(
-        "loss_mse" => Float32(0.8),
-        "loss2" => Float32(0.0),
-        "loss9" => Float32(0.2),
+        "loss_mse" => Float32(0.15),
+        "loss2" => Float32(0.5),
+        "loss9" => Float32(0.35),
     )
-    # if epoch == 1
-    #     weight_factors = Dict(
-    #         "loss_mse" => Float32(1),
-    #         "loss2" => Float32(0),
-    #         "loss9" => Float32(0),
-    #     )
-    # end
 
     (vgg_layer2, vgg_layer9) = vgg
     (loss_normalizer_mse, loss_normalizer2, loss_normalizer9, loss_normalizer_encoded) = loss_normalizers
@@ -223,13 +216,13 @@ end
 
 function loss(m::VAE, x, y, loss_saver::LossSaver, vgg, loss_normalizers, epoch)
     decoded, μ, logvar = m(x)
-    if epoch ≤ 1
-        reconstruction_loss = sum(mean((decoded .- x).^2, dims=(1,2,3))) * Float32(1/0.029 * (0.3333/0.51861))
-    else
-        reconstruction_loss = vgg_loss(decoded, x, vgg, loss_normalizers, epoch, m)
-    end
+    # if epoch ≤ 1
+    #     reconstruction_loss = sum(mean((decoded .- x).^2, dims=(1,2,3))) * Float32(1/0.029 * (0.3333/0.51861))
+    # else
+    #     reconstruction_loss = vgg_loss(decoded, x, vgg, loss_normalizers, epoch, m)
+    # end
 
-    # reconstruction_loss = vgg_loss(decoded, x, vgg, loss_normalizers, epoch, m)
+    reconstruction_loss = vgg_loss(decoded, x, vgg, loss_normalizers, epoch, m)
     kl_divergence = -0.5 .* sum(1 .+ logvar .- μ .^ 2 .- exp.(logvar))
 
     β_max = 5.0f0

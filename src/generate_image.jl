@@ -65,16 +65,26 @@ function output_image(vae, loader; epoch=0)
 
     # ----
 
-    encoded = vae.encoder(images)
-    μ = vae.μ_layer(encoded)
-    feature_nr = 7
-    μ[feature_nr,:] .= randn(Float32, size(μ[feature_nr,:])) |> DEVICE
-    decoded = vae.decoder(μ)
-    # Convert the reconstructed tensor back to an image
-    reconstructed = cpu(decoded[:,:,1,1])
-    reconstructed_image = Images.colorview(Gray, reconstructed)  # remove the singleton dimensions
-    path_to_image = joinpath(OUTPUT_IMAGE_DIR, "$new_integer-$epoch-reconstructed_image_altered.png")
-    save(path_to_image, reconstructed_image)
+    # encoded = vae.encoder(images)
+    # μ = vae.μ_layer(encoded)
+    # # feature_nr = 7
+    # # μ[feature_nr,:] .= randn(Float32, size(μ[feature_nr,:])) |> DEVICE
+    # excluded_features = [7, 92, 78]
+    # # excluded_features = [1]
+    # for feature_nr in 1:size(μ, 1)
+    #     if !(feature_nr in excluded_features)
+    #         μ[feature_nr,:] .= randn(Float32, size(μ[feature_nr,:])) |> DEVICE
+    #     else
+    #         @show μ[feature_nr,:]
+    #     end
+    # end
+
+    # decoded = vae.decoder(μ)
+    # # Convert the reconstructed tensor back to an image
+    # reconstructed = cpu(decoded[:,:,1,1])
+    # reconstructed_image = Images.colorview(Gray, reconstructed)  # remove the singleton dimensions
+    # path_to_image = joinpath(OUTPUT_IMAGE_DIR, "$new_integer-$epoch-reconstructed_image_altered.png")
+    # save(path_to_image, reconstructed_image)
 
     return nothing
 end
