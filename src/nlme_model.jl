@@ -47,8 +47,9 @@ sim = simobs(datamodel, _pop, p; obstimes=0:0.01:10, simulate_error=false)
 η = zero_randeffs(datamodel, _pop, p)
 
 num_rand_effects = 3
-# load "output_matrix/testing_output.jld2" result
-@load "output_matrix/testing_output.jld2" result
+
+@load "./output_matrix/testing_output.jld2" result
+@show result[:, 1]
 
 vae_η = randn(LATENT_DIM - num_rand_effects, length(_pop))
 ηM = randn(num_rand_effects, length(_pop))

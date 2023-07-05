@@ -13,7 +13,7 @@ function get_matrix(vae, loader; epoch=0)
     # excluded_features = [7, 92, 78]
     pop_size = 100
 
-    result = zeros(Float32, LATENT_DIM, pop_size)
+    η_vae = zeros(Float32, LATENT_DIM, pop_size)
     num_added = 0  # Keep track of the number of added samples
 
     for (images, _) in loader
@@ -24,13 +24,13 @@ function get_matrix(vae, loader; epoch=0)
         μ = vae.μ_layer(vae.encoder(images))
 
         batch_size = min(size(μ, 2), pop_size - num_added)  # Add up to 100 samples
-        result[:, num_added+1:num_added+batch_size] = μ[:, 1:batch_size]
+        η_vae[:, num_added+1:num_added+batch_size] = μ[:, 1:batch_size]
         num_added += batch_size
     end
 
     # Save the result matrix
-    @show result[:, 1]
-    @save "output_matrix/testing_output.jld2" result
+    @show η_vae[:, 1]
+    @save "output_matrix/testing_output.jld2" η_vae
 
     return nothing
 end
