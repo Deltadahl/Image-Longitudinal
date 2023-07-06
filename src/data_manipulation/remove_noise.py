@@ -6,16 +6,16 @@ from bm3d import bm3d, BM3DStages
 from glob import glob
 
 # Function to denoise the image
-def denoise_image(img, noise_variance):
+def denoise_image(img, noise_level):
     img = img.astype(np.float64)/255  # normalize the data to 0 - 1
-    # img_denoised = bm3d(img, noise_variance)
-    img_denoised = bm3d(img, noise_variance, stage_arg=BM3DStages.ALL_STAGES)
+    # img_denoised = bm3d(img, noise_level)
+    img_denoised = bm3d(img, noise_level, stage_arg=BM3DStages.ALL_STAGES)
     img_denoised = (img_denoised - np.min(img_denoised)) / (np.max(img_denoised) - np.min(img_denoised))  # Normalize
     img_denoised *= 255  # scale back to 0 - 255
     return img_denoised.astype(np.uint8)
 
 # Function to process each file
-def process_file(file, noise_variance, base_path, base_path_modified, counter):
+def process_file(file, noise_level, base_path, base_path_modified, counter):
     # Maintain the subfolder structure in the new path
     relative_path = os.path.relpath(file, base_path)
     save_path = os.path.join(base_path_modified, relative_path)
@@ -26,7 +26,7 @@ def process_file(file, noise_variance, base_path, base_path_modified, counter):
         return counter
 
     img = imageio.imread(file)
-    img_denoised = denoise_image(img, noise_variance)
+    img_denoised = denoise_image(img, noise_level)
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
     imageio.imsave(save_path, img_denoised)
 
@@ -36,7 +36,7 @@ def process_file(file, noise_variance, base_path, base_path_modified, counter):
 def main():
     base_path = "data/CellData/OCT_white_to_black"
     base_path_modified = "data/CellData/OCT_bm3d"
-    noise_variance = 0.13
+    noise_level = 0.13
     subfolders = [
         # "train/CNV",
         # "train/DME",
@@ -61,7 +61,7 @@ def main():
         minutes, seconds = divmod(rem, 60)
         print(f"Counter {counter} Time: {int(hours)}h {int(minutes)}m {int(seconds)}s")
 
-        counter = process_file(file, noise_variance, base_path, base_path_modified, counter)
+        counter = process_file(file, noise_level, base_path, base_path_modified, counter)
 
         print(f"Finished processing {file}")
 

@@ -206,15 +206,15 @@ function vgg_loss(decoded, x, vgg, loss_normalizers, epoch, m)
     update_normalizer!(loss_normalizer_mse, loss_mse)
     update_normalizer!(loss_normalizer2, loss2)
     update_normalizer!(loss_normalizer9, loss9)
-    if loss_normalizer_mse.count % 100 == 0
-        @show loss_normalizer_mse.sum / loss_normalizer_mse.count
-        @show loss_normalizer2.sum / loss_normalizer2.count
-        @show loss_normalizer9.sum / loss_normalizer9.count
-    end
+    # if loss_normalizer_mse.count % 100 == 0
+    #     @show loss_normalizer_mse.sum / loss_normalizer_mse.count
+    #     @show loss_normalizer2.sum / loss_normalizer2.count
+    #     @show loss_normalizer9.sum / loss_normalizer9.count
+    # end
     return loss_mse + loss2 + loss9
 end
 
-function loss(m::VAE, x, y, loss_saver::LossSaver, vgg, loss_normalizers, epoch)
+function loss(m::VAE, x, loss_saver::LossSaver, vgg, loss_normalizers, epoch)
     decoded, μ, logvar = m(x)
     # if epoch ≤ 1
     #     reconstruction_loss = sum(mean((decoded .- x).^2, dims=(1,2,3))) * Float32(1/0.029 * (0.3333/0.51861))
@@ -223,20 +223,22 @@ function loss(m::VAE, x, y, loss_saver::LossSaver, vgg, loss_normalizers, epoch)
     # end
 
     reconstruction_loss = vgg_loss(decoded, x, vgg, loss_normalizers, epoch, m)
+    # reconstruction_loss = sum(mean((decoded .- x).^2, dims=(1,2,3))) * Float32(24.4704336/0.8072882)
     kl_divergence = -0.5 .* sum(1 .+ logvar .- μ .^ 2 .- exp.(logvar))
 
-    β_max = 5.0f0
-    β_factor = min(epoch, β_max)
+    β_max = 7.0f0
+    β_factor = β_max
+    # β_factor = min(epoch, β_max)
 
     β = Float32(10^(-3) * β_factor)
 
     kl_divergence = β .* kl_divergence
     update_gl_balance!(loss_saver, kl_divergence, reconstruction_loss)
-    if loss_saver.counter % 100 == 0
-        @show loss_saver.avg_kl / loss_saver.counter
-        @show loss_saver.avg_rec / loss_saver.counter
-        println()
-    end
+    # if loss_saver.counter % 100 == 0
+    #     @show loss_saver.avg_kl / loss_saver.counter
+    #     @show loss_saver.avg_rec / loss_saver.counter
+    #     println()
+    # end
     return reconstruction_loss + kl_divergence
 end
 
