@@ -51,7 +51,7 @@ end
 function main()
     epochs = 100000
     load_model_nr = 0
-    try_nr = 2
+    try_nr = 4
 
     data_name = "OCT"
     data_path = "data/data_resized/bm3d_224_train"
@@ -146,7 +146,6 @@ function main()
 
             loss(vae, images, loss_saver_test, vgg, loss_normalizers_test, save_nr)
         end
-
 
         elapsed_time = time() - start_time
         hours, rem = divrem(elapsed_time, 3600)

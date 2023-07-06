@@ -87,7 +87,7 @@ function get_feature_importance(vae::VAE, loader)
         for i in 1:LATENT_DIM
             # Create a perturbed copy of the latent variables
             μ_perturbed = copy(μ)
-            μ_perturbed[i, :] .+= perturbation[i, :]
+            μ_perturbed[i, :] .= perturbation[i, :]
 
             # Decode the images from the original and perturbed latent variables
             decoded = vae.decoder(μ)
@@ -123,7 +123,7 @@ end
 function main()
     data_name = "OCT"
     data_path = "data/data_resized/bm3d_224_train_100"
-    epoch = 9
+    epoch = 5
 
     model_path = "saved_models/$(data_name)_epoch_$(epoch).jld2"
     vae = load(model_path, "vae")

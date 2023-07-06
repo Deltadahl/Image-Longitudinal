@@ -217,7 +217,7 @@ end
 function loss(m::VAE, x, loss_saver::LossSaver, vgg, loss_normalizers, epoch)
     decoded, μ, logvar = m(x)
     # if epoch ≤ 1
-    #     reconstruction_loss = sum(mean((decoded .- x).^2, dims=(1,2,3))) * Float32(1/0.029 * (0.3333/0.51861))
+    #     reconstruction_loss = sum(mean((decoded .- x).^2, dims=(1,2,3))) * Float32(24.4704336)
     # else
     #     reconstruction_loss = vgg_loss(decoded, x, vgg, loss_normalizers, epoch, m)
     # end
@@ -227,8 +227,8 @@ function loss(m::VAE, x, loss_saver::LossSaver, vgg, loss_normalizers, epoch)
     kl_divergence = -0.5 .* sum(1 .+ logvar .- μ .^ 2 .- exp.(logvar))
 
     β_max = 7.0f0
-    β_factor = β_max
-    # β_factor = min(epoch, β_max)
+    # β_factor = β_max
+    β_factor = min(epoch, β_max)
 
     β = Float32(10^(-3) * β_factor)
 
