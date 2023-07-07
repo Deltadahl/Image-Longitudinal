@@ -3,6 +3,7 @@ using DeepPumas
 using CairoMakie
 using JLD2
 include("constants.jl")
+include("VAE.jl")
 
 pop_size = 100
 η_size = 3
@@ -31,24 +32,23 @@ nlme_model = @model begin
 end
 
 
-p = (
-  ; tvImax = 2.1,
-  tvIC50 = 0.4,
-  tvKa = 1.,
-  Ω = Diagonal([0.2, 0.2, 0.2]),
-  σ = 0.01
-)
+# p = (
+#   ; tvImax = 2.1,
+#   tvIC50 = 0.4,
+#   tvKa = 1.,
+#   Ω = Diagonal([0.2, 0.2, 0.2]),
+#   σ = 0.01
+# )
 
-dr = DosageRegimen(1., addl=2, ii=2)
-_pop = [Subject(; id = i, events = dr, time=0:0.5:8) for i in 1:pop_size]
+# dr = DosageRegimen(1., addl=2, ii=2)
+# _pop = [Subject(; id = i, events = dr, time=0:0.5:8) for i in 1:pop_size]
 
-sim = simobs(nlme_model, _pop, p; obstimes=0:0.01:10, simulate_error=false)
-
+# sim = simobs(nlme_model, _pop, p; obstimes=0:0.01:10, simulate_error=false)
 
 pwd()
 cd("/home/jrun/data/code/TemporalRetinaVAE/src")
 pwd()
-epoch = 19
+epoch = 1
 model_path = "../saved_models/OCT_epoch_$(epoch).jld2"
 vae = load(model_path, "vae")
 
@@ -57,6 +57,7 @@ vae = load(model_path, "vae")
 # vae.logvar_layer = vae.logvar_layer |> DEVICE
 # vae.decoder = vae.decoder |> DEVICE
 # vae = vae |> DEVICE
+
 synth_data_pairs = map(1:pop_size) do i
   lv = randn(Float32, LATENT_DIM)
   selected_features = [12, 93, 111] # TODO change to correct values (find the most impactful)
@@ -95,12 +96,27 @@ end
 synthpop = getindex.(synth_data_pairs, 1)
 typeof(synthpop[1])
 
-plotgrid(sim[1:12]; sim = (; markersize=0))
+synth_imgs = getindex.(synth_data_pairs, 2)
+typeof(synth_imgs[1])
+size(synth_imgs[1])
+# plot synthetic image.
+generated_image = cpu(synth_imgs[1])
+using Images
+generated_image = generated_image[:,:,1,1]
+generated_image = Images.colorview(Gray, generated_image)
+path_to_save = joinpath("/home/jrun/data/code/TemporalRetinaVAE", "test.png")
+save(path_to_save, generated_image)
+
+plotgrid(synthpop[1:12]; sim = (; markersize=0))
+# plotgrid(sim[1:12]; sim = (; markersize=0))
+
+encoded = vae.encoder(synth_imgs[1])
+
+lv_estimated = vae.μ_layer(encoded)
 
 
 ####################################################
 # Demonstrera att vi kan gå bakvägen
-
 
 sim = simobs(datamodel, _pop, p)
 newpop = Subject.(sim)

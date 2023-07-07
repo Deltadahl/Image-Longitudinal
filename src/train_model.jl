@@ -51,11 +51,11 @@ end
 function main()
     epochs = 100000
     load_model_nr = 0
-    try_nr = 4
+    try_nr = 6
 
     data_name = "OCT"
-    data_path = "data/data_resized/bm3d_224_train"
-    data_path_test = "data/data_resized/bm3d_224_test"
+    data_path = "data/data_resized/bm3d_224_train_100"
+    data_path_test = "data/data_resized/bm3d_224_test_9"
     # data_path = "data/data_resized/bm3d_496_512_test"
 
     model_name = "$(data_name)_epoch_$(load_model_nr).jld2"

@@ -9,12 +9,67 @@ using Colors
 CUDA.math_mode!(CUDA.PEDANTIC_MATH)
 include("constants.jl")
 
+# function conv_bn(c_in, c_out; kernel=(3,3), pad=SamePad())
+#     Chain(
+#         Conv(kernel, c_in=>c_out, pad=pad, relu),
+#         BatchNorm(c_out)
+#     )
+# end
+
+# struct ResBlock
+#     layers::Chain
+#     shortcut::Chain
+# end
+
+# function ResBlock(c_in, c_out, c_hid)
+#     main_layers = Chain(
+#         conv_bn(c_in, c_hid, kernel=(3,3), pad=SamePad()),
+#         conv_bn(c_hid, c_out, kernel=(3,3), pad=SamePad())
+#     )
+
+#     shortcut = c_in == c_out ?
+#         Chain(x -> identity(x)) :
+#         Chain(Conv((1,1), c_in=>c_out), BatchNorm(c_out))
+
+#     ResBlock(main_layers, shortcut)
+# end
+
+
+# function (rb::ResBlock)(x)
+#     rb.layers(x) .+ rb.shortcut(x) |> relu
+# end
+
+# function MyResNet18()
+#     main = Chain(
+#         conv_bn(1, 64, kernel=(7,7), pad=SamePad()),
+#         MaxPool((3,3), stride=(2,2)),
+#         ResBlock(64, 64, 64),
+#         ResBlock(64, 64, 64),
+#         ResBlock(64, 128, 128),
+#         ResBlock(128, 128, 128),
+#         ResBlock(128, 256, 256),
+#         ResBlock(256, 256, 256),
+#         ResBlock(256, 512, 512),
+#         ResBlock(512, 512, 512),
+#         x -> mean(x, dims=[2,3]),
+#         Flux.flatten
+#     )
+
+#     final_layer = Chain(
+#         Dense(512, OUTPUT_SIZE_ENCODER),
+#         relu
+#     )
+
+#     Chain(main, final_layer)
+# end
+
+
 #Define the encoder
 function create_encoder()
-    # model_base = EfficientNet(:b0, inchannels = 1, nclasses = OUTPUT_SIZE_ENCODER)
-    # model_base = EfficientNetv2(:small, inchannels = 1, nclasses = OUTPUT_SIZE_ENCODER)
     model_base = ResNet(18; inchannels = 1, nclasses = OUTPUT_SIZE_ENCODER)
     model = Chain(model_base, relu)
+
+    # model = MyResNet18()
     return model
 end
 
