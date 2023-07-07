@@ -48,7 +48,7 @@ end
 pwd()
 cd("/home/jrun/data/code/TemporalRetinaVAE/src")
 pwd()
-epoch = 1
+epoch = 66
 model_path = "../saved_models/OCT_epoch_$(epoch).jld2"
 vae = load(model_path, "vae")
 
