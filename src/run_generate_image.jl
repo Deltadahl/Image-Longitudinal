@@ -13,7 +13,7 @@ function main()
     # data_path = "data/MNIST_small"
     data_name = "OCT"
     data_path = "data/data_resized/bm3d_224_train" # have train here just to see what the images look like
-    epoch = 9
+    epoch = 66
 
     model_path = "saved_models/$(data_name)_epoch_$(epoch).jld2"
     vae = load(model_path, "vae")

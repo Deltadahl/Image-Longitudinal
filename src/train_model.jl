@@ -51,11 +51,11 @@ end
 function main()
     epochs = 100000
     load_model_nr = 0
-    try_nr = 6
+    try_nr = 15
 
     data_name = "OCT"
-    data_path = "data/data_resized/bm3d_224_train_100"
-    data_path_test = "data/data_resized/bm3d_224_test_9"
+    data_path = "data/data_resized/bm3d_224_train"
+    data_path_test = "data/data_resized/bm3d_224_test"
     # data_path = "data/data_resized/bm3d_496_512_test"
 
     model_name = "$(data_name)_epoch_$(load_model_nr).jld2"
@@ -155,25 +155,25 @@ function main()
         rec_loss = loss_saver.avg_rec / loss_saver.counter
         kl_loss = loss_saver.avg_kl / loss_saver.counter
         epoch_loss = rec_loss + kl_loss
-        println("Loss tot: $(Printf.@sprintf("%.5f", epoch_loss))\nLoss rec: $(Printf.@sprintf("%.5f", rec_loss))\nLoss kl:  $(Printf.@sprintf("%.5f", kl_loss))")
+        println("Loss tot: $(Printf.@sprintf("%.9f", epoch_loss))\nLoss rec: $(Printf.@sprintf("%.9f", rec_loss))\nLoss kl:  $(Printf.@sprintf("%.9f", kl_loss))")
         mse_loss = loss_normalizer_mse.sum / loss_normalizer_mse.count
-        println("Loss MSE: $(Printf.@sprintf("%.5f", mse_loss))")
+        println("Loss MSE: $(Printf.@sprintf("%.9f", mse_loss))")
         l2_loss = loss_normalizer2.sum / loss_normalizer2.count
-        println("Loss L2:  $(Printf.@sprintf("%.5f", l2_loss))")
+        println("Loss L2:  $(Printf.@sprintf("%.9f", l2_loss))")
         l9_loss = loss_normalizer9.sum / loss_normalizer9.count
-        println("Loss L9:  $(Printf.@sprintf("%.5f", l9_loss))")
+        println("Loss L9:  $(Printf.@sprintf("%.9f", l9_loss))")
 
         rec_loss_test = loss_saver_test.avg_rec / loss_saver_test.counter
         kl_loss_test = loss_saver_test.avg_kl / loss_saver_test.counter
         epoch_loss_test = rec_loss_test + kl_loss_test
         println("Test losses:")
-        println("Loss tot: $(Printf.@sprintf("%.5f", epoch_loss_test))\nLoss rec: $(Printf.@sprintf("%.5f", rec_loss_test))\nLoss kl:  $(Printf.@sprintf("%.5f", kl_loss_test))")
+        println("Loss tot: $(Printf.@sprintf("%.9f", epoch_loss_test))\nLoss rec: $(Printf.@sprintf("%.9f", rec_loss_test))\nLoss kl:  $(Printf.@sprintf("%.9f", kl_loss_test))")
         mse_loss_test = loss_normalizer_mse_test.sum / loss_normalizer_mse_test.count
-        println("Loss MSE: $(Printf.@sprintf("%.5f", mse_loss_test))")
+        println("Loss MSE: $(Printf.@sprintf("%.9f", mse_loss_test))")
         l2_loss_test = loss_normalizer2_test.sum / loss_normalizer2_test.count
-        println("Loss L2:  $(Printf.@sprintf("%.5f", l2_loss_test))")
+        println("Loss L2:  $(Printf.@sprintf("%.9f", l2_loss_test))")
         l9_loss_test = loss_normalizer9_test.sum / loss_normalizer9_test.count
-        println("Loss L9:  $(Printf.@sprintf("%.5f", l9_loss_test))")
+        println("Loss L9:  $(Printf.@sprintf("%.9f", l9_loss_test))")
         println()
 
 

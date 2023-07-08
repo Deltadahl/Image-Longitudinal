@@ -77,7 +77,8 @@ function output_image(vae, loader; epoch=0)
     # μ = vae.μ_layer(encoded)
     # # feature_nr = 7
     # # μ[feature_nr,:] .= randn(Float32, size(μ[feature_nr,:])) |> DEVICE
-    # excluded_features = [7, 92, 78]
+    # excluded_features = [41, 118, 105]
+    # # excluded_features = [1, 2, 3]
     # # excluded_features = [1]
     # for feature_nr in 1:size(μ, 1)
     #     if !(feature_nr in excluded_features)
