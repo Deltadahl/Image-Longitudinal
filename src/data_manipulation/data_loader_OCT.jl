@@ -51,7 +51,7 @@ end
 
 function DataLoaderOCT(dir::String, batch_size::Int, data_augmentation::Bool)
     filenames = readdir(dir)
-    filenames = undersample_dataset(filenames) # TODO add this, and change so that the dataloder is reinitialized after each epoch
+    # filenames = undersample_dataset(filenames)
     Random.shuffle!(filenames)
     return DataLoaderOCT(dir, batch_size, filenames, data_augmentation)
 end
@@ -100,6 +100,8 @@ function next_batch(loader::DataLoaderOCT, start_idx::Int)
         # Convert the image to grayscale and then to Float32
         image = Float32.(Gray.(image))
 
+        height = 224
+        new_height = 190
         if loader.data_augmentation
             # With a 50% chance, mirror the image around the vertical axis
             if rand() < 0.5
@@ -119,16 +121,12 @@ function next_batch(loader::DataLoaderOCT, start_idx::Int)
             # end
 
             # Generate a random starting height for cropping (the upper bound ensures the cropped portion will fit within the image)
-            # start_h = rand(1:(496-450+1))
-            # # Select a 400x512 portion of the image from the random start height to start height + 399
-            # image = image[start_h:(start_h+449), :]
+            start_h = rand(1:(height-new_height+1))
         else
             # Without data augmentation, just center crop the image
-            # start_h = Int(floor((496 - 450) / 2)) + 1
-
-            # # Select a 400x512 portion of the image from the center start height to start height + 399
-            # image = image[start_h:(start_h+449), :]
+            start_h = Int(floor((height - new_height) / 2)) + 1
         end
+        image = image[start_h:(start_h+new_height-1), :]
 
         image = imresize(image, (224, 224))
         # Reshape the image to the format (height, width, channels, batch size)
@@ -137,7 +135,7 @@ function next_batch(loader::DataLoaderOCT, start_idx::Int)
         push!(labels, get_label(loader, filename))
 
         # Explicitly delete the image variable to free up memory
-        # finalize(image) # TODO see if this changes anything
+        finalize(image) # TODO see if this changes anything
     end
 
     # Concatenate all images along the 4th dimension to form a single batch

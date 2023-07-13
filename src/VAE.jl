@@ -9,67 +9,10 @@ using Colors
 CUDA.math_mode!(CUDA.PEDANTIC_MATH)
 include("constants.jl")
 
-# function conv_bn(c_in, c_out; kernel=(3,3), pad=SamePad())
-#     Chain(
-#         Conv(kernel, c_in=>c_out, pad=pad, relu),
-#         BatchNorm(c_out)
-#     )
-# end
-
-# struct ResBlock
-#     layers::Chain
-#     shortcut::Chain
-# end
-
-# function ResBlock(c_in, c_out, c_hid)
-#     main_layers = Chain(
-#         conv_bn(c_in, c_hid, kernel=(3,3), pad=SamePad()),
-#         conv_bn(c_hid, c_out, kernel=(3,3), pad=SamePad())
-#     )
-
-#     shortcut = c_in == c_out ?
-#         Chain(x -> identity(x)) :
-#         Chain(Conv((1,1), c_in=>c_out), BatchNorm(c_out))
-
-#     ResBlock(main_layers, shortcut)
-# end
-
-
-# function (rb::ResBlock)(x)
-#     rb.layers(x) .+ rb.shortcut(x) |> relu
-# end
-
-# function MyResNet18()
-#     main = Chain(
-#         conv_bn(1, 64, kernel=(7,7), pad=SamePad()),
-#         MaxPool((3,3), stride=(2,2)),
-#         ResBlock(64, 64, 64),
-#         ResBlock(64, 64, 64),
-#         ResBlock(64, 128, 128),
-#         ResBlock(128, 128, 128),
-#         ResBlock(128, 256, 256),
-#         ResBlock(256, 256, 256),
-#         ResBlock(256, 512, 512),
-#         ResBlock(512, 512, 512),
-#         x -> mean(x, dims=[2,3]),
-#         Flux.flatten
-#     )
-
-#     final_layer = Chain(
-#         Dense(512, OUTPUT_SIZE_ENCODER),
-#         relu
-#     )
-
-#     Chain(main, final_layer)
-# end
-
-
 #Define the encoder
 function create_encoder()
     model_base = ResNet(18; inchannels = 1, nclasses = OUTPUT_SIZE_ENCODER)
     model = Chain(model_base, relu)
-
-    # model = MyResNet18()
     return model
 end
 
@@ -122,7 +65,6 @@ function create_decoder()
     )
 end
 
-
 # Define the VAE
 mutable struct VAE
     encoder::Chain
@@ -151,7 +93,7 @@ mutable struct LossSaver
     counter::Float32
 end
 
-Zygote.@nograd function update_gl_balance!(loss_saver::LossSaver,  kl_div, rec)
+Zygote.@nograd function update_kl_rec!(loss_saver::LossSaver,  kl_div, rec)
     loss_saver.avg_kl += kl_div
     loss_saver.avg_rec += rec
     loss_saver.counter += 1.0f0
@@ -224,14 +166,11 @@ function normalize_image_net(images::CuArray{Float32, 4})
     return normalized_images
 end
 
-function vgg_loss(decoded, x, vgg, loss_normalizers, epoch, m)
+function vgg_loss(decoded, x, vgg, loss_normalizers)
     normalizing_factors = Dict(
-        # "loss_mse" => Float32(24.4704336),
-        # "loss2" => Float32(0.698908248),
-        # "loss9" => Float32(0.0635855192),
         "loss_mse" => Float32(1),
         "loss2" => Float32(1),
-        "loss9" => Float32(1/15),
+        "loss9" => Float32(1/25),
     )
 
     weight_factors = Dict(
@@ -241,7 +180,7 @@ function vgg_loss(decoded, x, vgg, loss_normalizers, epoch, m)
     )
 
     (vgg_layer2, vgg_layer9) = vgg
-    (loss_normalizer_mse, loss_normalizer2, loss_normalizer9, loss_normalizer_encoded) = loss_normalizers
+    (loss_normalizer_mse, loss_normalizer2, loss_normalizer9) = loss_normalizers
 
     loss_mse = sum(mean((decoded .- x).^2, dims=(1,2,3))) / (224 * 224 * 1)
 
@@ -265,39 +204,22 @@ function vgg_loss(decoded, x, vgg, loss_normalizers, epoch, m)
     update_normalizer!(loss_normalizer_mse, loss_mse)
     update_normalizer!(loss_normalizer2, loss2)
     update_normalizer!(loss_normalizer9, loss9)
-    # if loss_normalizer_mse.count % 100 == 0
-    #     @show loss_normalizer_mse.sum / loss_normalizer_mse.count
-    #     @show loss_normalizer2.sum / loss_normalizer2.count
-    #     @show loss_normalizer9.sum / loss_normalizer9.count
-    # end
     return loss_mse + loss2 + loss9
 end
 
-function loss(m::VAE, x, loss_saver::LossSaver, vgg, loss_normalizers, epoch)
+function loss(m::VAE, x, loss_saver::LossSaver, vgg, loss_normalizers, β_nr)
     decoded, μ, logvar = m(x)
-    # if epoch ≤ 1
-    #     reconstruction_loss = sum(mean((decoded .- x).^2, dims=(1,2,3))) * Float32(24.4704336)
-    # else
-    #     reconstruction_loss = vgg_loss(decoded, x, vgg, loss_normalizers, epoch, m)
-    # end
-
-    reconstruction_loss = vgg_loss(decoded, x, vgg, loss_normalizers, epoch, m)
+    reconstruction_loss = vgg_loss(decoded, x, vgg, loss_normalizers)
     # reconstruction_loss = sum(mean((decoded .- x).^2, dims=(1,2,3))) * Float32(24.4704336/0.8072882)
-    kl_divergence = -0.5 .* sum(1 .+ logvar .- μ .^ 2 .- exp.(logvar)) /(224 * 224 * 64 * 0.698908248)
+    kl_divergence = -0.5 .* sum(1 .+ logvar .- μ .^ 2 .- exp.(logvar)) / (224 * 224 * 64 * 0.698908248)
 
-    β_max = 7.0f0 * 0.5
-    # β_factor = β_max
-    β_factor = min(epoch, β_max)
-
+    # β_max = 7.0 * 0.8
+    β_max = 7.0f0
+    β_factor = min(β_max * β_nr, β_max)
     β = Float32(10^(-3) * β_factor)
 
     kl_divergence = β .* kl_divergence
-    update_gl_balance!(loss_saver, kl_divergence, reconstruction_loss)
-    # if loss_saver.counter % 100 == 0
-    #     @show loss_saver.avg_kl / loss_saver.counter
-    #     @show loss_saver.avg_rec / loss_saver.counter
-    #     println()
-    # end
+    update_kl_rec!(loss_saver, kl_divergence, reconstruction_loss)
     return reconstruction_loss + kl_divergence
 end
 

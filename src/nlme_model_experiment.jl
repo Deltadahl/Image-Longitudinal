@@ -2,6 +2,7 @@ using Pumas
 using DeepPumas
 using CairoMakie
 using JLD2
+using Images
 include("constants.jl")
 include("VAE.jl")
 
@@ -48,19 +49,20 @@ end
 pwd()
 cd("/home/jrun/data/code/TemporalRetinaVAE/src")
 pwd()
-epoch = 66
-model_path = "../saved_models/OCT_epoch_$(epoch).jld2"
-vae = load(model_path, "vae")
+save_nr = 518
+model_path = "../saved_models/save_nr_$(save_nr).jld2"
+vae_copy = load(model_path, "vae")
+vae = vae_copy
 
 # vae.encoder = vae.encoder |> DEVICE
 # vae.μ_layer = vae.μ_layer |> DEVICE
 # vae.logvar_layer = vae.logvar_layer |> DEVICE
 # vae.decoder = vae.decoder |> DEVICE
 # vae = vae |> DEVICE
+selected_features = [41, 118, 105] # TODO change to correct values (find the most impactful)
 
 synth_data_pairs = map(1:pop_size) do i
   lv = randn(Float32, LATENT_DIM)
-  selected_features = [12, 93, 111] # TODO change to correct values (find the most impactful)
   η = (; η = lv[selected_features])
 
   img = vae.decoder(lv)
@@ -93,15 +95,16 @@ synth_data_pairs = map(1:pop_size) do i
   return (subj, img, lv, η)
 end
 
-synthpop = getindex.(synth_data_pairs, 1)
-typeof(synthpop[1])
-
+synth_pop = getindex.(synth_data_pairs, 1)
 synth_imgs = getindex.(synth_data_pairs, 2)
-typeof(synth_imgs[1])
-size(synth_imgs[1])
-# plot synthetic image.
-generated_image = cpu(synth_imgs[1])
-using Images
+synth_lvs = getindex.(synth_data_pairs, 3)
+synth_ηs = getindex.(synth_data_pairs, 4)
+
+ind_idx = 10
+typeof(synth_pop[ind_idx])
+typeof(synth_imgs[ind_idx])
+size(synth_imgs[ind_idx])
+generated_image = cpu(synth_imgs[ind_idx])
 generated_image = generated_image[:,:,1,1]
 generated_image = Images.colorview(Gray, generated_image)
 path_to_save = joinpath("/home/jrun/data/code/TemporalRetinaVAE", "test.png")
@@ -110,11 +113,15 @@ save(path_to_save, generated_image)
 plotgrid(synthpop[1:12]; sim = (; markersize=0))
 # plotgrid(sim[1:12]; sim = (; markersize=0))
 
-encoded = vae.encoder(synth_imgs[1])
-
+encoded = vae.encoder(synth_imgs[ind_idx])
 lv_estimated = vae.μ_layer(encoded)
 
+η_estimated = (; η = lv_estimated[selected_features])
+synth_ηs[1]
 
+
+# vae.decoder(randn(Float32, (LATENT_DIM)))
+# vae.encoder(randn(Float32, (224,224,1,1)))
 ####################################################
 # Demonstrera att vi kan gå bakvägen
 
