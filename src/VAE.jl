@@ -30,7 +30,7 @@ end
 function create_decoder()
     return Chain(
         Dense(LATENT_DIM, 7 * 7 * 1024, relu),
-        my_reshape,  # Use the named function instead of the anonymous function
+        my_reshape,
         ConvTranspose((3, 3), 1024 => 512, stride = 1, pad = SamePad()),
         BatchNorm(512),
         relu,
@@ -169,8 +169,8 @@ end
 function vgg_loss(decoded, x, vgg, loss_normalizers)
     normalizing_factors = Dict(
         "loss_mse" => Float32(1),
-        "loss2" => Float32(1),
-        "loss9" => Float32(1/25),
+        "loss2" => Float32(1/64),
+        "loss9" => Float32(0.0625/25),
     )
 
     weight_factors = Dict(
@@ -182,7 +182,7 @@ function vgg_loss(decoded, x, vgg, loss_normalizers)
     (vgg_layer2, vgg_layer9) = vgg
     (loss_normalizer_mse, loss_normalizer2, loss_normalizer9) = loss_normalizers
 
-    loss_mse = sum(mean((decoded .- x).^2, dims=(1,2,3))) / (224 * 224 * 1)
+    loss_mse = mean(mean((decoded .- x).^2, dims=(1,2,3)))
 
     # Use the first subnetwork for the first layer
     decoded = normalize_image_net(decoded)
@@ -190,13 +190,13 @@ function vgg_loss(decoded, x, vgg, loss_normalizers)
     decoded_feature2 = vgg_layer2(decoded)
     x_feature2 = vgg_layer2(x)
     # Divide loss2 by the number of channels, the width and the height of the feature map
-    loss2 = sum(mean((decoded_feature2 .- x_feature2).^2, dims=(1,2,3))) / (224 * 224 * 64)
+    loss2 = mean(mean((decoded_feature2 .- x_feature2).^2, dims=(1,2,3)))
 
     # Use the second subnetwork for the second layer, taking the output of the first subnetwork as input
     decoded_feature9 = vgg_layer9(decoded_feature2)
     x_feature9 = vgg_layer9(x_feature2)
 
-    loss9 = sum(mean((decoded_feature9 .- x_feature9).^2, dims=(1,2,3))) / (56 * 56 * 256)
+    loss9 = mean(mean((decoded_feature9 .- x_feature9).^2, dims=(1,2,3)))
 
     loss_mse *= weight_factors["loss_mse"] * normalizing_factors["loss_mse"]
     loss2 *= weight_factors["loss2"] * normalizing_factors["loss2"]
@@ -211,12 +211,12 @@ function loss(m::VAE, x, loss_saver::LossSaver, vgg, loss_normalizers, β_nr)
     decoded, μ, logvar = m(x)
     reconstruction_loss = vgg_loss(decoded, x, vgg, loss_normalizers)
     # reconstruction_loss = sum(mean((decoded .- x).^2, dims=(1,2,3))) * Float32(24.4704336/0.8072882)
-    kl_divergence = -0.5 .* sum(1 .+ logvar .- μ .^ 2 .- exp.(logvar)) / (224 * 224 * 64 * 0.698908248)
+    kl_divergence = mean(-0.5 .* sum(1 .+ logvar .- μ .^ 2 .- exp.(logvar), dims=1))
 
     # β_max = 7.0 * 0.8
     β_max = 7.0f0
     β_factor = min(β_max * β_nr, β_max)
-    β = Float32(10^(-3) * β_factor)
+    β = Float32(10^(-3) * β_factor * 1 / (64 * 0.698908248))
 
     kl_divergence = β .* kl_divergence
     update_kl_rec!(loss_saver, kl_divergence, reconstruction_loss)
@@ -224,3 +224,65 @@ function loss(m::VAE, x, loss_saver::LossSaver, vgg, loss_normalizers, β_nr)
 end
 
 Flux.trainable(m::VAE) = (m.encoder, m.μ_layer, m.logvar_layer, m.decoder)
+
+
+########
+
+# function vgg_loss(decoded, x, vgg, loss_normalizers)
+#     normalizing_factors = Dict(
+#         "loss_mse" => Float32(1),
+#         "loss2" => Float32(1),
+#         "loss9" => Float32(1/25),
+#     )
+
+#     weight_factors = Dict(
+#         "loss_mse" => Float32(1/3),
+#         "loss2" => Float32(1/3),
+#         "loss9" => Float32(1/3),
+#     )
+
+#     (vgg_layer2, vgg_layer9) = vgg
+#     (loss_normalizer_mse, loss_normalizer2, loss_normalizer9) = loss_normalizers
+
+#     loss_mse = sum(mean((decoded .- x).^2, dims=(1,2,3))) / (224 * 224 * 1)
+
+#     # Use the first subnetwork for the first layer
+#     decoded = normalize_image_net(decoded)
+#     x = normalize_image_net(x)
+#     decoded_feature2 = vgg_layer2(decoded)
+#     x_feature2 = vgg_layer2(x)
+#     # Divide loss2 by the number of channels, the width and the height of the feature map
+#     loss2 = sum(mean((decoded_feature2 .- x_feature2).^2, dims=(1,2,3))) / (224 * 224 * 64)
+
+#     # Use the second subnetwork for the second layer, taking the output of the first subnetwork as input
+#     decoded_feature9 = vgg_layer9(decoded_feature2)
+#     x_feature9 = vgg_layer9(x_feature2)
+
+#     loss9 = sum(mean((decoded_feature9 .- x_feature9).^2, dims=(1,2,3))) / (56 * 56 * 256)
+
+#     loss_mse *= weight_factors["loss_mse"] * normalizing_factors["loss_mse"]
+#     loss2 *= weight_factors["loss2"] * normalizing_factors["loss2"]
+#     loss9 *= weight_factors["loss9"] * normalizing_factors["loss9"]
+#     update_normalizer!(loss_normalizer_mse, loss_mse)
+#     update_normalizer!(loss_normalizer2, loss2)
+#     update_normalizer!(loss_normalizer9, loss9)
+#     return loss_mse + loss2 + loss9
+# end
+
+# function loss(m::VAE, x, loss_saver::LossSaver, vgg, loss_normalizers, β_nr)
+#     decoded, μ, logvar = m(x)
+#     reconstruction_loss = vgg_loss(decoded, x, vgg, loss_normalizers)
+#     # reconstruction_loss = sum(mean((decoded .- x).^2, dims=(1,2,3))) * Float32(24.4704336/0.8072882)
+#     kl_divergence = -0.5 .* sum(1 .+ logvar .- μ .^ 2 .- exp.(logvar)) / (224 * 224 * 64 * 0.698908248)
+
+#     # β_max = 7.0 * 0.8
+#     β_max = 7.0f0
+#     β_factor = min(β_max * β_nr, β_max)
+#     β = Float32(10^(-3) * β_factor)
+
+#     kl_divergence = β .* kl_divergence
+#     update_kl_rec!(loss_saver, kl_divergence, reconstruction_loss)
+#     return reconstruction_loss + kl_divergence
+# end
+
+# Flux.trainable(m::VAE) = (m.encoder, m.μ_layer, m.logvar_layer, m.decoder)

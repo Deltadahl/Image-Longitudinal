@@ -120,7 +120,11 @@ mutable struct StepDecay
 end
 
 function (sd::StepDecay)(epoch::Int64)
-    lr = sd.initial_lr * sd.drop^(floor((1+epoch)/sd.epochs_drop))
+    lr = sd.initial_lr * sd.drop^((epoch-1)/sd.epochs_drop)
     lr = min(lr, sd.initial_lr * sd.drop^23)
+    # lr = min(lr, sd.initial_lr * sd.drop^123)
+    # lr = min(lr, sd.initial_lr * sd.drop^60)
+    # lr = min(lr, sd.initial_lr * sd.drop^70)
+    # lr = min(lr, sd.initial_lr * sd.drop^0)
     return lr
 end

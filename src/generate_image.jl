@@ -68,8 +68,8 @@ function output_image(vae, loader; epoch=0)
     path_to_image = joinpath(OUTPUT_IMAGE_DIR, "$new_integer-$epoch-generated_image.png")
     save(path_to_image, generated_image)
 
-    path_to_image = joinpath(OUTPUT_IMAGE_DIR, "$new_integer-$epoch-reconstructed_image_x2.png")
-    save(path_to_image, reconstructed_x2)
+    # path_to_image = joinpath(OUTPUT_IMAGE_DIR, "$new_integer-$epoch-reconstructed_image_x2.png")
+    # save(path_to_image, reconstructed_x2)
 
     # ----
 
@@ -77,11 +77,11 @@ function output_image(vae, loader; epoch=0)
     # μ = vae.μ_layer(encoded)
     # # feature_nr = 7
     # # μ[feature_nr,:] .= randn(Float32, size(μ[feature_nr,:])) |> DEVICE
-    # excluded_features = [41, 118, 105]
+    # selected_features = [75, 25, 98]
     # # excluded_features = [1, 2, 3]
     # # excluded_features = [1]
     # for feature_nr in 1:size(μ, 1)
-    #     if !(feature_nr in excluded_features)
+    #     if !(feature_nr in selected_features)
     #         μ[feature_nr,:] .= randn(Float32, size(μ[feature_nr,:])) |> DEVICE
     #     else
     #         @show μ[feature_nr,:]

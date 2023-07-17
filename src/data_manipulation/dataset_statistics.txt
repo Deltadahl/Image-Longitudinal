@@ -1,0 +1,78 @@
+Statistics for train/NORMAL
+Image size: 496 x 384, count: 6
+Image size: 496 x 512, count: 31269
+Image size: 496 x 768, count: 14348
+Image size: 496 x 1024, count: 177
+Image size: 496 x 1536, count: 5340
+Number of unique patients in NORMAL: 3434
+Number of occurrences of NORMAL: 51140
+
+Statistics for train/DRUSEN
+Image size: 496 x 512, count: 5371
+Image size: 496 x 768, count: 2531
+Image size: 496 x 1024, count: 23
+Image size: 496 x 1536, count: 691
+Number of unique patients in DRUSEN: 713
+Number of occurrences of DRUSEN: 8616
+
+Statistics for train/DME
+Image size: 496 x 512, count: 1485
+Image size: 512 x 512, count: 8659
+Image size: 496 x 768, count: 816
+Image size: 496 x 1024, count: 14
+Image size: 496 x 1536, count: 374
+Number of unique patients in DME: 709
+Number of occurrences of DME: 11348
+
+Statistics for train/CNV
+Image size: 496 x 384, count: 15
+Image size: 496 x 512, count: 19912
+Image size: 496 x 768, count: 12050
+Image size: 496 x 1024, count: 173
+Image size: 496 x 1536, count: 5055
+Number of unique patients in CNV: 791
+Number of occurrences of CNV: 37205
+
+Statistics for test/NORMAL
+Image size: 496 x 1024, count: 241
+Image size: 496 x 1536, count: 9
+Number of unique patients in NORMAL: 171
+Number of occurrences of NORMAL: 250
+
+Statistics for test/DRUSEN
+Image size: 277 x 642, count: 1
+Image size: 496 x 768, count: 1
+Image size: 455 x 900, count: 1
+Image size: 496 x 1024, count: 239
+Image size: 496 x 1536, count: 8
+Number of unique patients in DRUSEN: 169
+Number of occurrences of DRUSEN: 250
+
+Statistics for test/DME
+Image size: 496 x 768, count: 2
+Image size: 496 x 1024, count: 234
+Image size: 496 x 1536, count: 14
+Number of unique patients in DME: 167
+Number of occurrences of DME: 250
+
+Statistics for test/CNV
+Image size: 496 x 768, count: 1
+Image size: 496 x 1024, count: 228
+Image size: 496 x 1536, count: 21
+Number of unique patients in CNV: 178
+Number of occurrences of CNV: 250
+
+Total Statistics
+Image size: 496 x 384, count: 21
+Image size: 496 x 512, count: 58037
+Image size: 512 x 512, count: 8659
+Image size: 277 x 642, count: 1
+Image size: 496 x 768, count: 29749
+Image size: 455 x 900, count: 1
+Image size: 496 x 1024, count: 1329
+Image size: 496 x 1536, count: 11512
+Total number of occurrences of NORMAL: 51390
+Total number of occurrences of DRUSEN: 8866
+Total number of occurrences of DME: 11598
+Total number of occurrences of CNV: 37455
+Total number of unique patients: 5420

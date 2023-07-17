@@ -14,8 +14,9 @@ include("data_manipulation/plot_losses.jl")
 
 function main()
     epochs = 100000
-    load_model_nr = 0
-    try_nr = 15
+    load_model_nr = 348
+    try_nr = 17
+    # evaluate_interval = 5000
     evaluate_interval = 5000
 
     data_name = "OCT"
@@ -39,8 +40,8 @@ function main()
 
     ps = params(vae)
 
-    step_decay = StepDecay(0.001, 0.9, 1)  # create a scheduler
-    opt = ADAM(step_decay(1))  # initialize with initial learning rate
+    # step_decay = StepDecay(0.001, 0.9, 1)  # create a scheduler
+    opt = ADAM(0.001)  # initialize with initial learning rate
 
     vgg = vgg_subnetworks()
 
@@ -49,9 +50,9 @@ function main()
     if load_model_nr > 0
         save_nr += load_model_nr
     end
+
     for epoch in 1:epochs
         println("Epoch: $epoch/$epochs")
-        opt.eta = step_decay(epoch)
         loss_normalizers, loss_saver = reset_normalizers()
         loss_normalizers_test, loss_saver_test = reset_normalizers()
 
@@ -60,6 +61,7 @@ function main()
             if images === nothing
                 break
             end
+
             images = images |> DEVICE
             β_nr = (batch_nr * BATCH_SIZE + (epoch - 1) * IMAGES_TRAIN + load_model_nr * evaluate_interval) / (2 * IMAGES_TRAIN)
             train!(vae, images, opt, ps, loss_saver, vgg, loss_normalizers, β_nr)

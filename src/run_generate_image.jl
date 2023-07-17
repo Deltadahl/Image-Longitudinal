@@ -13,9 +13,9 @@ function main()
     # data_path = "data/MNIST_small"
     data_name = "OCT"
     data_path = "data/data_resized/bm3d_224_train" # have train here just to see what the images look like
-    epoch = 66
+    save_nr = 518
 
-    model_path = "saved_models/$(data_name)_epoch_$(epoch).jld2"
+    model_path = "saved_models/save_nr_$(save_nr).jld2"
     vae = load(model_path, "vae")
 
     vae.encoder = vae.encoder |> DEVICE
