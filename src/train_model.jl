@@ -14,8 +14,8 @@ include("data_manipulation/plot_losses.jl")
 
 function main()
     epochs = 100000
-    load_model_nr = 348
-    try_nr = 17
+    load_model_nr = 289
+    try_nr = 31
     # evaluate_interval = 5000
     evaluate_interval = 5000
 
@@ -55,6 +55,7 @@ function main()
         println("Epoch: $epoch/$epochs")
         loss_normalizers, loss_saver = reset_normalizers()
         loss_normalizers_test, loss_saver_test = reset_normalizers()
+        statistics_saver = StatisticsSaver()
 
         loader = get_dataloader(data_name, data_path, BATCH_SIZE, true)
         for (batch_nr, (images, _)) in enumerate(loader)
@@ -63,8 +64,8 @@ function main()
             end
 
             images = images |> DEVICE
-            β_nr = (batch_nr * BATCH_SIZE + (epoch - 1) * IMAGES_TRAIN + load_model_nr * evaluate_interval) / (2 * IMAGES_TRAIN)
-            train!(vae, images, opt, ps, loss_saver, vgg, loss_normalizers, β_nr)
+            β_nr = (batch_nr * BATCH_SIZE + (epoch - 1) * IMAGES_TRAIN + load_model_nr * evaluate_interval) / IMAGES_TRAIN
+            train!(vae, images, opt, ps, loss_saver, vgg, loss_normalizers, β_nr, statistics_saver, true)
 
             if batch_nr * BATCH_SIZE % evaluate_interval == 0
                 loader_test = get_dataloader(data_name, data_path_test, BATCH_SIZE, false)
@@ -74,11 +75,13 @@ function main()
                     end
                     images_test = images_test |> DEVICE
 
-                    loss(vae, images_test, loss_saver_test, vgg, loss_normalizers_test, β_nr)
+                    loss(vae, images_test, loss_saver_test, vgg, loss_normalizers_test, β_nr, statistics_saver, false)
                 end
                 loader_eval = get_dataloader(data_name, data_path, BATCH_SIZE, false)
                 output_image(vae, loader_eval; epoch=save_nr)
                 print_and_save(start_time, loss_saver, loss_normalizers, loss_saver_test, loss_normalizers_test, try_nr, save_nr)
+                print_statistics(statistics_saver, try_nr)
+                statistics_saver = StatisticsSaver()
                 loss_normalizers, loss_saver = reset_normalizers()
                 loss_normalizers_test, loss_saver_test = reset_normalizers()
                 save_model(save_nr, vae)

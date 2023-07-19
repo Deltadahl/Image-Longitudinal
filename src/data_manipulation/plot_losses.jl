@@ -56,6 +56,34 @@ function plot_losses(try_nr, evaluate_interval = 5000)
     save_path = "saved_losses/try_$(try_nr)/losses_tot.png"
     savefig(p2, save_path)
 
+    function read_statistics_from_file(filename)
+        file = open(filename, "r")
+        lines = readlines(file)
+        close(file)
+        return map(line -> parse(Float32, line), lines)
+    end
+
+    # Assuming you've read your data into variables as follows:
+    mean_μ = read_statistics_from_file(folder_path * "mean_mu.txt")
+    var_μ = read_statistics_from_file(folder_path * "var_mu.txt")
+    mean_logvar = read_statistics_from_file(folder_path * "mean_logvar.txt")
+    var_logvar = read_statistics_from_file(folder_path * "var_logvar.txt")
+
+    mean_σ = exp.(mean_logvar ./ 2)
+    var_σ = exp.(var_logvar ./ 2)
+
+    # Create your plots:
+    p5 = plot((1:length(mean_μ))*x_scale, mean_μ, label="Mean of μ", lw = 2, linestyle=:dash, color=:blue)
+    plot!(p5, (1:length(var_μ))*x_scale, var_μ, label="Variance of μ", lw = 2, linestyle=:dash, color=:cyan)
+    plot!(p5, (1:length(mean_σ))*x_scale, mean_σ, label="Mean of σ", lw = 2, color=:red)
+    plot!(p5, (1:length(var_σ))*x_scale, var_σ, label="Variance of σ", lw = 2, color=:orange, legs=:top)
+    title!(p5, "μ and σ Statistics")
+    xlabel!(p5, "Number of Epochs")
+    ylabel!(p5, "Value")
+    display(p5)
+    save_path = "saved_losses/try_$(try_nr)/statistics.png"
+    savefig(p5, save_path)
+
     # The plot for Reconstruction and KL loss
     p1 = plot((1:length(loss_rec))*x_scale, loss_rec[1:end], label="Train: Reconstruction loss", lw = 2, linestyle=:dash, color=:blue)
     plot!(p1, (1:length(loss_rec_test))*x_scale, loss_rec_test, label="Test: Reconstruction loss", lw = 2, color=:cyan)
@@ -69,17 +97,17 @@ function plot_losses(try_nr, evaluate_interval = 5000)
     savefig(p1, save_path)
 
     # The plot for training reconstruction loss starting from x_scale * 2
-    evaluate_interval / IMAGES_TRAIN
     # p4 = plot((21:length(loss_rec[21:end]))*x_scale, loss_rec[21:end], label="Train: Reconstruction loss", lw = 2, linestyle=:dash, color=:blue)
-    p4 = plot((1:length(loss_rec[21*2:end]))*x_scale .+ 2.0 , loss_rec[21*2:end], label="Train: Reconstruction loss", lw = 2, linestyle=:dash, color=:blue)
-    title!(p4, "Training Reconstruction Loss (Starting from Epoch 2)")
-    xlabel!(p4, "Number of Epochs")
-    ylabel!(p4, "Loss")
-    display(p4)
-
-    # Save image
-    save_path = "saved_losses/try_$(try_nr)/losses_rec_from_2.png"
-    savefig(p4, save_path)
-
+    recordings_epoch = floor(Int, IMAGES_TRAIN / evaluate_interval)
+    if length(loss_rec) > 2 * recordings_epoch
+        p4 = plot((1:length(loss_rec[recordings_epoch:end]))*x_scale .+ 2.0 , loss_rec[recordings_epoch:end], label="Train: Reconstruction loss", lw = 2, color=:blue)
+        title!(p4, "Training Reconstruction Loss (Starting from Epoch 2)")
+        xlabel!(p4, "Number of Epochs")
+        ylabel!(p4, "Loss")
+        display(p4)
+        # Save image
+        save_path = "saved_losses/try_$(try_nr)/losses_rec_from_2.png"
+        savefig(p4, save_path)
+    end
 
 end

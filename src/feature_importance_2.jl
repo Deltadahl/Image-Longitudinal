@@ -47,7 +47,7 @@ end
 
 
 function main()
-    save_nr = 734
+    save_nr = 289
 
     model_path = "saved_models/save_nr_$(save_nr).jld2"
     vae = load(model_path, "vae")

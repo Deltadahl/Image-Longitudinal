@@ -64,7 +64,7 @@ end
 function main()
     data_name = "OCT"
     data_path = "data/data_resized/bm3d_224_train_100"
-    save_nr = 522
+    save_nr = 825
 
     model_path = "saved_models/save_nr_$(save_nr).jld2"
     vae = load(model_path, "vae")
@@ -82,3 +82,4 @@ function main()
 end
 
 main()
+

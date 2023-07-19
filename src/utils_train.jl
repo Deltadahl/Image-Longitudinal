@@ -1,5 +1,5 @@
-function train!(model, x, opt, ps, loss_saver, vgg, loss_normalizers, β_nr)
-    batch_loss, back = Flux.pullback(() -> loss(model, x, loss_saver, vgg, loss_normalizers, β_nr), ps)
+function train!(model, x, opt, ps, loss_saver, vgg, loss_normalizers, β_nr, statistics_saver, training)
+    batch_loss, back = Flux.pullback(() -> loss(model, x, loss_saver, vgg, loss_normalizers, β_nr, statistics_saver, training), ps)
     grads = back(1)
     Optimise.update!(opt, ps, grads)
     nothing
@@ -35,8 +35,8 @@ function save_losses(loss, filename)
 end
 
 function print_and_save(start_time, loss_saver, loss_normalizers, loss_saver_test, loss_normalizers_test, try_nr, save_nr)
-    (loss_normalizer2, loss_normalizer9, loss_normalizer_mse) = loss_normalizers
-    (loss_normalizer2_test, loss_normalizer9_test, loss_normalizer_mse_test) = loss_normalizers_test
+    (loss_normalizer_mse, loss_normalizer2, loss_normalizer9) = loss_normalizers
+    (loss_normalizer_mse_test, loss_normalizer2_test, loss_normalizer9_test) = loss_normalizers_test
 
     @show save_nr
     elapsed_time = time() - start_time
@@ -127,4 +127,33 @@ function (sd::StepDecay)(epoch::Int64)
     # lr = min(lr, sd.initial_lr * sd.drop^70)
     # lr = min(lr, sd.initial_lr * sd.drop^0)
     return lr
+end
+
+function save_statistics(statistic, filename)
+    file = open(filename, "a")
+    write(file, "$statistic\n")
+    close(file)
+    nothing
+end
+
+function print_statistics(statistics_saver, try_nr)
+    mean_μ = statistics_saver.sum_mu / statistics_saver.counter
+    mean_logvar = statistics_saver.sum_logvar / statistics_saver.counter
+    var_μ = statistics_saver.sum_mu2 / statistics_saver.counter - mean_μ^2
+    var_logvar = statistics_saver.sum_logvar2 / statistics_saver.counter - mean_logvar^2
+
+    # println("Mean of μ: $mean_μ, Variance of μ: $var_μ")
+    # println("Mean of logvar: $mean_logvar, Variance of logvar: $var_logvar")
+
+    folder_name = "saved_losses/try_$(try_nr)/"
+    if !isdir(folder_name)
+        mkdir(folder_name)
+    end
+
+    # Usage
+    save_statistics(mean_μ, folder_name * "mean_mu.txt")
+    save_statistics(var_μ, folder_name * "var_mu.txt")
+    save_statistics(mean_logvar, folder_name * "mean_logvar.txt")
+    save_statistics(var_logvar, folder_name * "var_logvar.txt")
+
 end
