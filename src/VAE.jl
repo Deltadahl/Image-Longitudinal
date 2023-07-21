@@ -262,35 +262,54 @@ function vgg_loss(decoded, x, vgg, loss_normalizers)
     return loss_mse + loss2 + loss9
 end
 
+# mutable struct StatisticsSaver
+#     sum_mu::Float32
+#     sum_logvar::Float32
+#     sum_mu2::Float32
+#     sum_logvar2::Float32
+#     counter::Float32
+# end
+
+# StatisticsSaver() = StatisticsSaver(0f0, 0f0, 0f0, 0f0, 0f0)
+# Zygote.@nograd function update_statistics!(statistics_saver::StatisticsSaver, μ, logvar)
+#     statistics_saver.sum_mu += sum(μ)
+#     statistics_saver.sum_logvar += sum(logvar)
+#     statistics_saver.sum_mu2 += sum(μ .^ 2)
+#     statistics_saver.sum_logvar2 += sum(exp.(logvar))  # Convert logvar to var
+#     statistics_saver.counter += size(μ, 1) * size(μ, 2)  # BATCH_SIZE
+# end
+
 mutable struct StatisticsSaver
-    sum_mu::Float32
-    sum_logvar::Float32
-    sum_mu2::Float32
-    sum_logvar2::Float32
-    counter::Float32
+    mu_mean_values::Vector{Float32}
+    mu_variance_values::Vector{Float32}
+    logvar_mean_values::Vector{Float32}
+    logvar_variance_values::Vector{Float32}
 end
 
-StatisticsSaver() = StatisticsSaver(0f0, 0f0, 0f0, 0f0, 0f0)
+StatisticsSaver() = StatisticsSaver(Float32[], Float32[], Float32[], Float32[])
 
 Zygote.@nograd function update_statistics!(statistics_saver::StatisticsSaver, μ, logvar)
-    statistics_saver.sum_mu += sum(μ)
-    statistics_saver.sum_logvar += sum(logvar)
-    statistics_saver.sum_mu2 += sum(μ .^ 2)
-    statistics_saver.sum_logvar2 += sum(exp.(logvar))  # Convert logvar to var
-    statistics_saver.counter += size(μ, 1) * size(μ, 2)  # BATCH_SIZE
+    # Calculate the mean and variance of μ for the batch and append to the arrays
+    push!(statistics_saver.mu_mean_values, mean(μ))
+    push!(statistics_saver.mu_variance_values, var(μ))
+
+    # Calculate the mean and variance of logvar for the batch and append to the arrays
+    push!(statistics_saver.logvar_mean_values, mean(logvar))
+    push!(statistics_saver.logvar_variance_values, var(logvar))
 end
 
-
-
-function loss(m::VAE, x, loss_saver::LossSaver, vgg, loss_normalizers, β_nr, statistics_saver::StatisticsSaver, training::Bool)
+function loss(m::VAE, x, loss_saver::LossSaver, vgg, loss_normalizers, β_nr, statistics_saver::StatisticsSaver, training::Bool, epoch)
     decoded, μ, logvar = m(x)
     reconstruction_loss = vgg_loss(decoded, x, vgg, loss_normalizers)
     # reconstruction_loss = sum(mean((decoded .- x).^2, dims=(1,2,3))) * Float32(24.4704336/0.8072882)
     kl_divergence = mean(-0.5 .* sum(1 .+ logvar .- μ .^ 2 .- exp.(logvar), dims=1))
 
 
-    β_max = 7.0f0 * 0.3
-    β_factor = min(β_max * β_nr, β_max)
+    # β_factor = 7.0f0 * 0.6
+    β_max = 7.0f0 * 0.6
+    β_factor = min(β_max * β_nr / 5, β_max)
+    # factor = max(0, epoch - 3)
+    # β_factor = 7.0f0 * 0.6 * factor / 10 ########################## REMVOE later
     # β_factor = β_max * β_nr # TODO REMVOE THIS LINE AFTER TEST! $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
     β = Float32(β_factor / 111.82532)
 

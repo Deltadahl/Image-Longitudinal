@@ -3,6 +3,8 @@ data
 saved_models
 saved_models_vgg
 saved_models_15
+saved_models_31
+saved_models_FID
 saved_models_15_1897
 saved_models_important
 output_altered_images

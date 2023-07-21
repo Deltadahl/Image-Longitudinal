@@ -1,7 +1,7 @@
 using Glob
 
 # Specify how many lines to keep
-number_of_rows_to_keep = 348  # change this as needed
+number_of_rows_to_keep = 311  # change this as needed
 
 # Function to process a file
 function process_file(filename::String)
@@ -23,7 +23,7 @@ function process_file(filename::String)
 end
 
 # Get a list of all .txt files in the directory
-file_list = glob("*.txt", "saved_losses/try_17")
+file_list = glob("*.txt", "saved_losses/try_31")
 
 # Process all files
 for filename in file_list

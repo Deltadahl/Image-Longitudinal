@@ -1,10 +1,10 @@
 using Plots
 
-# Plots.plotlyjs()
 # Plots.gr()
 plotlyjs()
 function plot_losses(try_nr, evaluate_interval = 5000)
     x_scale = evaluate_interval / IMAGES_TRAIN
+    x_scale = 1/floor(Int, 1/x_scale)
     function load_losses(filename)
         file = open(filename, "r")
         losses = map(line -> parse(Float32, line), readlines(file))
@@ -69,14 +69,17 @@ function plot_losses(try_nr, evaluate_interval = 5000)
     mean_logvar = read_statistics_from_file(folder_path * "mean_logvar.txt")
     var_logvar = read_statistics_from_file(folder_path * "var_logvar.txt")
 
-    mean_σ = exp.(mean_logvar ./ 2)
-    var_σ = exp.(var_logvar ./ 2)
+    # mean_logvar = exp.(mean_logvar ./ 2)
+    # var_σ = exp.(var_logvar ./ 2)
+
 
     # Create your plots:
-    p5 = plot((1:length(mean_μ))*x_scale, mean_μ, label="Mean of μ", lw = 2, linestyle=:dash, color=:blue)
-    plot!(p5, (1:length(var_μ))*x_scale, var_μ, label="Variance of μ", lw = 2, linestyle=:dash, color=:cyan)
-    plot!(p5, (1:length(mean_σ))*x_scale, mean_σ, label="Mean of σ", lw = 2, color=:red)
-    plot!(p5, (1:length(var_σ))*x_scale, var_σ, label="Variance of σ", lw = 2, color=:orange, legs=:top)
+    p5 = plot((1:length(mean_μ))*x_scale, mean_μ, label="Mean of μ", lw = 2, linestyle=:dash, color=:blue, dpi=300, leg=:bottomright)
+    # plot!(p5, (1:length(var_μ))*x_scale, var_μ, label="Variance of μ", lw = 2, linestyle=:dash, color=:cyan)
+    plot!(p5, (1:length(mean_logvar))*x_scale, mean_logvar, label="Mean of log(σ²)", lw = 2, color=:red, dpi=300)
+    # plot!(p5, (1:length(var_logvar))*x_scale, var_logvar, label="Variance of log(σ²)", lw = 2, color=:orange, legs=:top)
+    vline!(p5, [0.75], linestyle=:dot, color=:gray, label="Selected Value", lw=2)
+
     title!(p5, "μ and σ Statistics")
     xlabel!(p5, "Number of Epochs")
     ylabel!(p5, "Value")

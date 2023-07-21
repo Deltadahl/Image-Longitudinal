@@ -14,10 +14,10 @@ include("data_manipulation/plot_losses.jl")
 
 function main()
     epochs = 100000
-    load_model_nr = 289
-    try_nr = 31
+    load_model_nr = 18
+    try_nr = 37
     # evaluate_interval = 5000
-    evaluate_interval = 5000
+    evaluate_interval = 20000
 
     data_name = "OCT"
     data_path = "data/data_resized/bm3d_224_train"
@@ -65,7 +65,8 @@ function main()
 
             images = images |> DEVICE
             β_nr = (batch_nr * BATCH_SIZE + (epoch - 1) * IMAGES_TRAIN + load_model_nr * evaluate_interval) / IMAGES_TRAIN
-            train!(vae, images, opt, ps, loss_saver, vgg, loss_normalizers, β_nr, statistics_saver, true)
+
+            train!(vae, images, opt, ps, loss_saver, vgg, loss_normalizers, β_nr, statistics_saver, true, epoch)
 
             if batch_nr * BATCH_SIZE % evaluate_interval == 0
                 loader_test = get_dataloader(data_name, data_path_test, BATCH_SIZE, false)
@@ -75,7 +76,7 @@ function main()
                     end
                     images_test = images_test |> DEVICE
 
-                    loss(vae, images_test, loss_saver_test, vgg, loss_normalizers_test, β_nr, statistics_saver, false)
+                    loss(vae, images_test, loss_saver_test, vgg, loss_normalizers_test, β_nr, statistics_saver, false, epoch)
                 end
                 loader_eval = get_dataloader(data_name, data_path, BATCH_SIZE, false)
                 output_image(vae, loader_eval; epoch=save_nr)
