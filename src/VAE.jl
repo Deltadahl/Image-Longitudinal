@@ -309,8 +309,8 @@ function loss(m::VAE, x, loss_saver::LossSaver, vgg, loss_normalizers, β_nr, st
     β_max = 7.0f0 * 0.6
     β_factor = min(β_max * β_nr / 5, β_max)
     # factor = max(0, epoch - 3)
-    # β_factor = 7.0f0 * 0.6 * factor / 10 ########################## REMVOE later
-    # β_factor = β_max * β_nr # TODO REMVOE THIS LINE AFTER TEST! $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+    # β_factor = 7.0f0 * 0.6 * factor / 10 # REMVOE later
+    # β_factor = β_max * β_nr # TODO REMVOE THIS LINE AFTER TEST!
     β = Float32(β_factor / 111.82532)
 
     kl_divergence = β .* kl_divergence

@@ -4,19 +4,25 @@ using DeepPumas
 using CairoMakie
 using JLD2
 using Images
+using ThreadsX
 include("constants.jl")
-include("VAE.jl")
+# include("VAE.jl")
 
-pop_size = 100
+pop_size = 1_000_000
 η_size = 3
-
+min_val = 1.0 * 10^(-8)
 nlme_model = @model begin
   @param begin
-    tvImax ∈ RealDomain(; lower=0.)
-    tvIC50 ∈ RealDomain(; lower=0.)
-    tvKa ∈ RealDomain(; lower=0.)
-    Ω ∈ PDiagDomain(3)
-    σ ∈ RealDomain(; lower=0.)
+    # tvImax ∈ RealDomain(; lower=min_val)
+    # tvIC50 ∈ RealDomain(; lower=min_val)
+    # tvKa ∈ RealDomain(; lower=min_val)
+    # Ω ∈ PDiagDomain(3)
+    # σ ∈ RealDomain(; lower=min_val)
+    tvImax ∈ RealDomain(; lower=min_val, init=1.1)
+    tvIC50 ∈ RealDomain(; lower=min_val, init=0.6)
+    tvKa ∈ RealDomain(; lower=min_val)
+    Ω ∈ PDiagDomain(; init = Diagonal([0.2, 0.2, 0.2]))
+    σ ∈ RealDomain(; lower=min_val, init=0.1)
   end
   @random η ~ MvNormal(Ω)
   @pre begin
@@ -26,34 +32,34 @@ nlme_model = @model begin
   end
   @dynamics begin
     Depot' = - Ka * Depot
-    Central' = Ka * Depot - Imax * Central / (IC50 + Central)
+    Central' = Ka * Depot - Imax * Central / (IC50 + Central) # problem?
   end
   @derived begin
     Outcome ~ @. Normal(Central, σ)
   end
 end
-save_nr = 289
-model_path = "../saved_models/save_nr_$(save_nr).jld2"
-vae = load(model_path, "vae")
+# save_nr = 269
+# model_path = "../saved_models/save_nr_$(save_nr).jld2"
+# vae = load(model_path, "vae") # Use when creating images.
 
-# selected_features = [75, 25, 98, 18, 107, 101, 33, 60, 52, 34, 47, 116, 102, 5, 113, 43, 128, 14, 41, 16, 38, 12, 4, 115, 105, 26, 64, 32, 1, 103, 59, 63, 21, 56, 31, 72, 46, 36, 108, 104, 89, 82, 124, 97, 122, 53, 84, 55, 57, 65, 6, 94, 39, 15, 78, 74, 49, 50, 96, 7, 83, 81, 93, 17, 20, 69, 87, 125, 112, 28, 90, 110, 40, 117, 2, 99, 10, 88, 118, 29, 30, 42, 23, 119, 67, 19, 44, 126, 70, 73, 45, 114, 35, 106, 86, 109, 85, 77, 71, 62, 54, 51, 13, 91, 123, 66, 27, 58, 61, 68, 11, 37, 76, 48, 120, 8, 3, 80, 79, 121, 100, 92, 24, 9, 111, 95, 22, 127]
-# selected_features = [19, 50, 10, 94, 77, 96, 65, 7, 91, 67, 89, 98, 20, 58, 14, 106, 36, 34, 101, 11, 125, 68, 124, 72, 47, 99, 13, 69, 88, 8, 92, 84, 83, 70, 95, 17, 26, 15, 71, 43, 105, 52, 42, 117, 3, 40, 115, 112, 56, 46, 54, 9, 126, 102, 78, 4, 21, 51, 120, 61, 123, 35, 64, 63, 6, 5, 62, 16, 22, 59, 122, 32, 104, 41, 109, 108, 118, 127, 12, 73, 39, 87, 1, 37, 31, 121, 18, 93, 2, 103, 97, 44, 33, 29, 80, 100, 25, 53, 86, 24, 111, 79, 82, 57, 81, 85, 49, 60, 113, 23, 107, 66, 27, 90, 110, 55, 128, 28, 114, 116, 76, 48, 38, 119, 30, 75, 74, 45]
-selected_features = [50, 19, 94, 10, 77, 70, 47, 84, 9, 8, 81, 29, 79, 41, 4, 63, 62, 7, 12, 14, 99, 51, 45, 91, 37, 64, 5, 33, 123, 121, 116, 112, 44, 127, 6, 105, 111, 126, 72, 114, 60, 122, 53, 54, 16, 24, 125, 26, 95, 49, 115, 119, 35, 93, 109, 11, 40, 102, 2, 39, 78, 68, 120, 103, 46, 100, 75, 17, 20, 42, 23, 25, 71, 104, 18, 97, 55, 56, 107, 3, 80, 38, 128, 30, 69, 67, 22, 108, 74, 65, 117, 110, 66, 43, 13, 61, 101, 32, 87, 98, 76, 52, 1, 92, 21, 86, 28, 96, 113, 34, 36, 57, 58, 59, 15, 31, 89, 83, 118, 124, 90, 73, 82, 85, 88, 106, 27, 48]
-selected_features = [53, 7, 25, 1, 87, 61, 45]
+# selected_features = [25, 7, 1, 53, 87, 61, 45, 126, 29, 113, 3, 32, 6, 22, 44, 96, 81, 122, 56, 20, 103, 52, 65, 30, 121, 24, 35, 8, 47, 40, 120, 92, 27, 41, 71, 50, 34, 59, 106, 90, 18, 112, 5, 97, 37, 114, 98, 128, 36, 76, 38, 75, 69, 57, 28, 82, 99, 72, 23, 4, 116, 46, 17, 12, 43, 110, 63, 73, 85, 127, 108, 60, 102, 88, 70, 119, 39, 83, 115, 109, 107, 125, 14, 77, 51, 15, 64, 118, 31, 19, 68, 117, 80, 54, 79, 66, 67, 100, 21, 111, 105, 11, 74, 94, 78, 2, 123, 89, 10, 48, 42, 9, 58, 55, 49, 13, 16, 104, 95, 124, 93, 62, 84, 26, 33, 91, 86, 101]
+selected_features = [92, 111, 50, 3, 91, 67, 37, 8, 90, 120, 54, 56, 21, 61, 75, 29, 80, 12, 95, 118, 73, 94, 101, 20, 48, 99, 104, 13, 59, 52, 106, 79, 4, 86, 93, 85, 72, 32, 87, 35, 47, 113, 40, 53, 36, 55, 122, 22, 5, 2, 88, 77, 26, 15, 7, 108, 58, 28, 39, 128, 126, 25, 103, 65, 105, 34, 18, 69, 27, 43, 64, 123, 38, 78, 17, 121, 42, 49, 33, 66, 57, 6, 24, 112, 10, 115, 68, 45, 11, 51, 41, 97, 70, 102, 114, 89, 71, 44, 110, 109, 62, 31, 124, 16, 1, 74, 9, 119, 14, 83, 117, 76, 60, 46, 23, 84, 98, 82, 100, 107, 81, 125, 127, 30, 19, 96, 63, 116]
 
 nlme_params = (
 		; tvImax=2.1,
 		tvIC50=0.4,
 		tvKa=1.0,
+		# Ω=Diagonal([1.0, 1.0, 1.0]),
 		Ω=Diagonal([0.2, 0.2, 0.2]),
 		σ=0.01
 	)
 
-synth_data_pairs = map(1:pop_size) do i
+@time synth_data_pairs = map(1:pop_size) do i
     lv = randn(Float32, LATENT_DIM)
     η = (; η=lv[selected_features[1:3]])
 
-    img = vae.decoder(lv)
+    # img = vae.decoder(lv)
+    img = "PLACE HOLDER"
 
     ## Create a subject that just stores some covariates and a dosing regimen
     no_obs_subj = Subject(;
@@ -76,64 +82,57 @@ synth_data_pairs = map(1:pop_size) do i
     return (subj, img, lv, η)
 end
 
-pop = getindex.(synth_data_pairs, 1)
-imgs = getindex.(synth_data_pairs, 2)
-lvs = getindex.(synth_data_pairs, 3)
-ηs = getindex.(synth_data_pairs, 4)
+pop = getindex.(synth_data_pairs, 1);
+imgs = getindex.(synth_data_pairs, 2);
+lvs = getindex.(synth_data_pairs, 3);
+ηs = getindex.(synth_data_pairs, 4);
 
-idx = 13
-generated_image = vae.decoder(lvs[idx])
-Images.colorview(Gray, generated_image[:, :, 1, 1])
+# idx = 74
+# generated_image = vae.decoder(lvs[idx])
+# Images.colorview(Gray, generated_image[:, :, 1, 1])
 
+# plotgrid(pop[1:12])
 
-####################################################
-# Demonstrate that we can go the back way
+####################### Back way #############################
 
-# sim = simobs(nlme_model, pop, nlme_params)
-# newpop = Subject.(sim)
-# plotgrid(newpop[1:12])
-
-fpm = fit(
+@time fpm = fit(
   nlme_model,
     pop,
     init_params(nlme_model),
     FOCE()
 )
 
-fpm
-nlme_params
-
-pred = predict(fpm; obstimes=0:0.01:8)
-
-plotgrid(pred[1:8])
-
-η_pred = empirical_bayes(fpm)
-ηs
-save("saved_data/η_pred.jld2", "η_pred", η_pred)
-
-sim_orig = simobs(nlme_model, pop, nlme_params, ηs; obstimes=0:0.01:10, simulate_error=false)
-sim_approx = simobs(nlme_model, pop, nlme_params, η_pred; obstimes=0:0.01:10, simulate_error=false)
-
-plotgrid(sim_orig[1:12]; sim = (; markersize=0))
-plotgrid(sim_approx[1:12]; sim = (; markersize=0))
-
-
-
-
-# pop_approx = map(1:pop_size) do i
-# 	no_obs_subj = Subject(;
-# 		covariates=(; true_η=ηs_approx[i].η, lv=lvs_approx[i]), # Store some relevant info
-# 		id=i,
-# 		events=DosageRegimen(1.0)
-# 	)
-# 	sim_approx = simobs(
-# 		nlme_model,
-# 		no_obs_subj,
-# 		nlme_params,
-# 		ηs_approx[i];
-# 		obstimes=0:0.5:10 # whatever seems appropriate
-# 	)
-# 	return Subject(sim_approx)
+# @time ebes = ThreadsX.map(pop) do subj
+#   # @time ebes = map(pop) do subj
+#   return empirical_bayes(
+#     nlme_model,
+#     subj,
+#     nlme_params,
+#     FOCE()
+#   )
 # end
-# plotgrid(pop[1:12]; sim=(; markersize=0))
-# plotgrid(pop_approx[1:12]; sim=(; markersize=0))
+
+@time η_pred = empirical_bayes(fpm)
+ηs
+
+# nlme_params
+# pred = predict(fpm; obstimes=0:0.01:8)
+# plotgrid(pred[1:8])
+
+η_pred_matrix = hcat([t.η for t in η_pred]...)
+# η_pred_matrix2 = hcat([t.η for t in ebes]...)
+η_matrix = hcat([t.η for t in ηs]...)
+error_fit = mean((η_pred_matrix .- η_matrix).^2)
+# error_ebes = mean((η_pred_matrix2 .- η_matrix).^2)
+error_random = mean((randn(size(η_matrix)) .- η_matrix).^2)
+error_zero = mean((zeros(size(η_matrix)) .- η_matrix).^2)
+
+# save("eta_and_img_data.jld2", "eta_matrix", η_pred_matrix, "imgs", imgs)
+save("eta_and_lv_data.jld2", "eta_matrix", η_pred_matrix, "lvs", lvs)
+
+stderror(infer(fpm))
+
+# sim_orig = simobs(nlme_model, pop, nlme_params, ηs; obstimes=0:0.01:10, simulate_error=false)
+# sim_approx = simobs(nlme_model, pop, nlme_params, η_pred; obstimes=0:0.01:10, simulate_error=false)
+# plotgrid(sim_orig[1:12]; sim = (; markersize=0))
+# plotgrid(sim_approx[1:12]; sim = (; markersize=0))

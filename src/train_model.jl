@@ -14,7 +14,7 @@ include("data_manipulation/plot_losses.jl")
 
 function main()
     epochs = 100000
-    load_model_nr = 18
+    load_model_nr = 277
     try_nr = 37
     # evaluate_interval = 5000
     evaluate_interval = 20000
