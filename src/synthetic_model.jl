@@ -15,13 +15,13 @@ function create_synthetic_model()
     model_base = ResNet(18; inchannels = 1, nclasses = 3)
     # model_base = ResNet(18; inchannels = 1, nclasses = OUTPUT_SIZE_ENCODER)
     # model = Chain(model_base, relu, Dense(OUTPUT_SIZE_ENCODER, 3))
-    return model
+    return model_base
     #Flatten ,then one fully connected layer
     # model = Chain(Flux.flatten, Dense(224*224, 3))
 end
 
 mutable struct SyntheticModel
-    to_random_effects::Chain
+    to_random_effects
 end
 
 function (m::SyntheticModel)(x)

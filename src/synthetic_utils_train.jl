@@ -40,6 +40,7 @@ end
 
 function save_model(save_nr, model)
     model_copy = deepcopy(model)
+    model_copy.to_random_effects = model_copy.to_random_effects |> cpu
     model_copy = model_copy |> cpu
 
     save_path = "synthetic_saved_models/save_nr_$(save_nr).jld2"

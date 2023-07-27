@@ -1,7 +1,7 @@
 using Plots
 
-# Plots.gr()
-plotlyjs()
+Plots.gr()
+# plotlyjs()
 function plot_losses(try_nr, evaluate_interval = 5000)
     x_scale = evaluate_interval / IMAGES_TRAIN
     x_scale = 1/floor(Int, 1/x_scale)
@@ -32,17 +32,18 @@ function plot_losses(try_nr, evaluate_interval = 5000)
 
 
     # The plot for MSE, L2, and L9 loss
-    p3 = plot((1:length(loss_mse))*x_scale, loss_mse, label="Train: MSE loss", lw = 2, linestyle=:dash, color=:blue)
+    p3 = plot((1:length(loss_mse))*x_scale, loss_mse, label="Train: MSE loss", lw = 2, linestyle=:dash, color=:blue, leg=:top)
     plot!(p3, (1:length(loss_mse_test))*x_scale, loss_mse_test, label="Test: MSE loss", lw = 2, color=:cyan)
-    plot!(p3, (1:length(loss_l2))*x_scale, loss_l2, label="Train: L2 loss", lw = 2, linestyle=:dash, color=:red)
-    plot!(p3, (1:length(loss_l2_test))*x_scale, loss_l2_test, label="Test: L2 loss", lw = 2, color=:orange)
-    plot!(p3, (1:length(loss_l9))*x_scale, loss_l9, label="Train: L9 loss", lw = 2, linestyle=:dash, color=:green)
-    plot!(p3, (1:length(loss_l9_test))*x_scale, loss_l9_test, label="Test: L9 loss", lw = 2, color=:magenta)
-    title!(p3, "MSE, L2, and L9 Loss")
+    plot!(p3, (1:length(loss_l2))*x_scale, loss_l2, label="Train: Layer 2 loss", lw = 2, linestyle=:dash, color=:red)
+    plot!(p3, (1:length(loss_l2_test))*x_scale, loss_l2_test, label="Test: Layer 2 loss", lw = 2, color=:orange)
+    plot!(p3, (1:length(loss_l9))*x_scale, loss_l9, label="Train: Layer 7 loss", lw = 2, linestyle=:dash, color=:green)
+    plot!(p3, (1:length(loss_l9_test))*x_scale, loss_l9_test, label="Test: Layer 7 loss", lw = 2, color=:magenta)
+    vline!(p3, [5], linestyle=:dot, color=:gray, label="Stopped increasing β", lw=2)
+    title!(p3, "MSE, Layer 2, and Layer 7 Loss")
     xlabel!(p3, "Number of Epochs")
     ylabel!(p3, "Loss")
     display(p3)
-    save_path = "saved_losses/try_$(try_nr)/losses_L2L9mse.png"
+    save_path = "saved_losses/try_$(try_nr)/losses_L2L7mse.png"
     savefig(p3, save_path)
 
     # The plot for total loss
@@ -112,5 +113,32 @@ function plot_losses(try_nr, evaluate_interval = 5000)
         save_path = "saved_losses/try_$(try_nr)/losses_rec_from_2.png"
         savefig(p4, save_path)
     end
+
+    p6 = plot((1:length(loss_rec_test))*x_scale, loss_rec_test, label="Reconstruction loss", lw = 2, color=:blue)
+    vline!(p6, [5], linestyle=:dot, color=:gray, label="Stopped increasing β", lw=2)
+    title!(p6, "Reconstruction Loss Test Set")
+    xlabel!(p6, "Number of Epochs")
+    ylabel!(p6, "Loss")
+    display(p6)
+    save_path = "saved_losses/try_$(try_nr)/losses_rec_test.png"
+    savefig(p6, save_path)
+
+    p7 = plot((1:length(loss_kl_test))*x_scale, loss_kl_test, label="KL divergence loss", lw = 2, color=:blue, leg=:bottomright)
+    vline!(p7, [5], linestyle=:dot, color=:gray, label="Stopped increasing β", lw=2)
+    title!(p7, "KL Divergence Loss Test Set")
+    xlabel!(p7, "Number of Epochs")
+    ylabel!(p7, "Loss")
+    display(p7)
+    save_path = "saved_losses/try_$(try_nr)/losses_kl_test.png"
+    savefig(p7, save_path)
+
+    p8 = plot((1:length(total_loss_test))*x_scale, total_loss_test, label="Total loss", lw = 2, color=:blue)
+    vline!(p8, [5], linestyle=:dot, color=:gray, label="Stopped increasing β", lw=2)
+    title!(p8, "Total Loss Test Set")
+    xlabel!(p8, "Number of Epochs")
+    ylabel!(p8, "Loss")
+    display(p8)
+    save_path = "saved_losses/try_$(try_nr)/losses_total_test.png"
+    savefig(p8, save_path)
 
 end

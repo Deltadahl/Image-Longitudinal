@@ -13,7 +13,7 @@ function get_feature_importance(vae::VAE)
     feature_importance = zeros(LATENT_DIM)
     n_images = 0
 
-    for i in 1:10000
+    for i in 1:10
 
         # μ = vae.μ_layer(vae.encoder(images))
         μ = randn(Float32, (LATENT_DIM, BATCH_SIZE)) |> DEVICE
@@ -58,7 +58,7 @@ end
 
 
 function main()
-    save_nr = 269
+    save_nr = 526
 
     model_path = "saved_models/save_nr_$(save_nr).jld2"
     vae = load(model_path, "vae")

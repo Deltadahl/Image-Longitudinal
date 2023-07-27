@@ -16,22 +16,17 @@ function main()
     # Load data
 
     epochs = 100000
-    load_model_nr = 0
-    load_model_nr_vae = 277
-    try_nr = 3
+    load_model_nr = 43
+    load_model_nr_vae = 526
+    try_nr = 8
 
-    evaluate_interval = 100000
-    batch_size = 16
+    evaluate_interval = 100_000
+    batch_size = 24
 
-    filepath = "data/synthetic/eta_and_lv_data_1.jld2"
+    filepath = "data/synthetic/eta_and_lv_data_2_new.jld2"
     η_matrix = load(filepath, "eta_matrix")
     η_matrix = Float32.(η_matrix)
-    lvs = load(filepath, "lvs")
-    lvs_matrix = hcat(lvs...)
-
-    lvs_matrix[[25, 92], :] = lvs_matrix[[92, 25], :]
-    lvs_matrix[[7, 111], :] = lvs_matrix[[111, 7], :]
-    lvs_matrix[[1, 50], :] = lvs_matrix[[50, 1], :]
+    lvs_matrix = load(filepath, "lvs_matrix")
 
     # mse lvs_matrix 92, 111 and 50 vs η_matrix
     @show mean((lvs_matrix[92, :] .- η_matrix[1,:]).^2)
@@ -49,7 +44,7 @@ function main()
     @show mean((lvs_matrix[50, :] .- η_matrix[3,:]).^2)
 
     num_samples = size(lvs_matrix, 2)  # number of columns = number of samples
-    split_idx = Int(floor(0.99 * num_samples))
+    split_idx = Int(floor(0.95 * num_samples))
     # Split the data into training and test sets
     lvs_train = lvs_matrix[:, 1:split_idx]
     η_train = η_matrix[:, 1:split_idx]
@@ -79,10 +74,11 @@ function main()
     vae = load("saved_models/" * model_name_vae, "vae")
 
     print_model(synthetic_model)
+
     synthetic_model.to_random_effects = synthetic_model.to_random_effects |> DEVICE
-    # synthetic_model = synthetic_model |> DEVICE
+    synthetic_model = synthetic_model |> DEVICE
     vae.decoder = vae.decoder |> DEVICE
-    # vae = vae |> DEVICE # TODO test to remove this
+    vae = vae |> DEVICE # TODO test to remove this
 
     ps = params(synthetic_model)
 
