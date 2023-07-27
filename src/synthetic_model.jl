@@ -43,10 +43,23 @@ function loss(m::SyntheticModel, x, y, loss_saver::LossSaverSynthetic)
     y_approx = m(x)
     batch_size = size(y, 2)
 
-    loss_mse = sum(mean((y .- y_approx).^2, dims=1))
+    # mse92 = sum(mean((y_approx[1,:] .- y[1,:]).^2, dims=1))
+    # mse111 = sum(mean((y_approx[2,:] .- y[2,:]).^2, dims=1))
+    # mse50 = sum(mean((y_approx[3,:] .- y[3,:]).^2, dims=1))
+
+    # mse92 = sum((x_batch_test[92, :] .- y_approx[1,:]).^2)
+    # mse111 = sum((x_batch_test[111, :] .- y_approx[2,:]).^2)
+    # mse50 = sum((x_batch_test[50, :] .- y_approx[3,:]).^2)
+
+    # mse92 = sum(mean((x_batch_test[92, :] .- y[1,:]).^2, dims=1))
+    # mse111 = sum(mean((x_batch_test[111, :] .- y[2,:]).^2, dims=1))
+    # mse50 = sum(mean((x_batch_test[50, :] .- y[3,:]).^2, dims=1))
+
+    loss_mse = mean(mse92 + mse111 + mse50)
+    # loss_mse = sum(mean((y .- y_approx).^2, dims=1))
 
     update_loss!(loss_saver, loss_mse, batch_size)
-    return return loss_mse
+    return loss_mse
 end
 
 Flux.trainable(m::SyntheticModel) = (m.to_random_effects,)
