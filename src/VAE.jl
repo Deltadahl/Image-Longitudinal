@@ -229,9 +229,10 @@ function vgg_loss(decoded, x, vgg, loss_normalizers)
         # "loss_mse" => Float32(1/3),
         # "loss2" => Float32(1/3),
         # "loss9" => Float32(1/3),
-        "loss_mse" => Float32(1/3),
-        "loss2" => Float32(1/3),
-        "loss9" => Float32(1/3),
+        ############################################### TODO REMOVE, ONLY FOR TESTING MNIST ###############################################
+        "loss_mse" => Float32(0),
+        "loss2" => Float32(1/2),
+        "loss9" => Float32(1/2),
     )
 
     (vgg_layer2, vgg_layer9) = vgg

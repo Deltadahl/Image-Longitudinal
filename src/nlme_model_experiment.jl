@@ -4,11 +4,10 @@ using DeepPumas
 using CairoMakie
 using JLD2
 using Images
-using ThreadsX
 include("constants.jl")
 # include("VAE.jl")
 
-pop_size = 1_000
+pop_size = 1_00
 η_size = 3
 min_val = 1.0 * 10^(-8)
 nlme_model = @model begin
@@ -27,15 +26,15 @@ nlme_model = @model begin
   end
   @dynamics begin
     Depot' = - Ka * Depot
-    Central' = Ka * Depot - Imax * Central / (IC50 + Central) # problem?
+    Central' = Ka * Depot - Imax * Central / (IC50 + Central)
   end
   @derived begin
     Outcome ~ @. Normal(Central, σ)
   end
 end
-save_nr = 526
-model_path = "../saved_models/save_nr_$(save_nr).jld2"
-vae = load(model_path, "vae") # Use when creating images.
+# save_nr = 526
+# model_path = "../saved_models/save_nr_$(save_nr).jld2"
+# vae = load(model_path, "vae") # Use when creating images.
 
 selected_features = [92, 111, 50, 3, 91, 67, 37, 8, 90, 120, 54, 56, 21, 61, 75, 29, 80, 12, 95, 118, 73, 94, 101, 20, 48, 99, 104, 13, 59, 52, 106, 79, 4, 86, 93, 85, 72, 32, 87, 35, 47, 113, 40, 53, 36, 55, 122, 22, 5, 2, 88, 77, 26, 15, 7, 108, 58, 28, 39, 128, 126, 25, 103, 65, 105, 34, 18, 69, 27, 43, 64, 123, 38, 78, 17, 121, 42, 49, 33, 66, 57, 6, 24, 112, 10, 115, 68, 45, 11, 51, 41, 97, 70, 102, 114, 89, 71, 44, 110, 109, 62, 31, 124, 16, 1, 74, 9, 119, 14, 83, 117, 76, 60, 46, 23, 84, 98, 82, 100, 107, 81, 125, 127, 30, 19, 96, 63, 116]
 
@@ -44,7 +43,6 @@ nlme_params = (
 		tvIC50=0.4,
 		tvKa=1.0,
 		Ω=Diagonal([1.0, 1.0, 1.0]),
-		# Ω=Diagonal([0.2, 0.2, 0.2]),
 		σ=0.01
 	)
 
@@ -69,7 +67,6 @@ nlme_params = (
         nlme_params,
         η;
         obstimes=0:0.5:10 # whatever seems appropriate
-        # obstimes=0:0.1:10 # whatever seems appropriate
     )
 
     ## Make a Subject of our simulation. The data from no_obs_subj will tag along.
@@ -107,31 +104,28 @@ lvs = getindex.(synth_data_pairs, 3);
 #   )
 # end1
 
-@time η_pred = empirical_bayes(fpm)
+@time η_approx = empirical_bayes(fpm)
 ηs
 
-# nlme_params
-# pred = predict(fpm; obstimes=0:0.01:8)
-# plotgrid(pred[1:8])
+η_approx_matrix = Float32.(hcat([t.η for t in η_approx]...))
+# η_approx_matrix2 = hcat([t.η for t in ebes]...)
+η_true = hcat([t.η for t in ηs]...)
 
-η_pred_matrix = hcat([t.η for t in η_pred]...)
-# η_pred_matrix2 = hcat([t.η for t in ebes]...)
-η_matrix = hcat([t.η for t in ηs]...)
+error_fit = mean((η_approx_matrix .- η_true).^2)
+# error_ebes = mean((η_approx_matrix2 .- η_true).^2)
+error_random = mean((randn(size(η_true)) .- η_true).^2)
+error_zero = mean((zeros(size(η_true)) .- η_true).^2)
 
-error_fit = mean((η_pred_matrix .- η_matrix).^2)
-# error_ebes = mean((η_pred_matrix2 .- η_matrix).^2)
-error_random = mean((randn(size(η_matrix)) .- η_matrix).^2)
-error_zero = mean((zeros(size(η_matrix)) .- η_matrix).^2)
+lvs_matrix = hcat(lvs...)
+save("eta_approx_and_lv_data_XXX.jld2", "η_approx_matrix", η_approx_matrix, "lvs_matrix", lvs_matrix)
 
-lvs_matrix = hcat(lvs...) # TODO check if correct
-save("eta_and_lv_data.jld2", "eta_matrix", η_pred_matrix, "lvs_matrix", lvs_matrix)
 
-# save("eta_and_img_data.jld2", "eta_matrix", η_pred_matrix, "imgs", imgs)
-# save("eta_and_lv_data.jld2", "eta_matrix", η_pred_matrix, "lvs", lvs)
+# save("eta_and_img_data.jld2", "η_approx_matrix", η_approx_matrix, "imgs", imgs)
+# save("eta_and_lv_data.jld2", "η_approx_matrix", η_approx_matrix, "lvs", lvs)
 
-stderror(infer(fpm))
+# stderror(infer(fpm))
 
 # sim_orig = simobs(nlme_model, pop, nlme_params, ηs; obstimes=0:0.01:10, simulate_error=false)
-# sim_approx = simobs(nlme_model, pop, nlme_params, η_pred; obstimes=0:0.01:10, simulate_error=false)
+# sim_approx = simobs(nlme_model, pop, nlme_params, η_approx; obstimes=0:0.01:10, simulate_error=false)
 # plotgrid(sim_orig[1:12]; sim = (; markersize=0))
 # plotgrid(sim_approx[1:12]; sim = (; markersize=0))

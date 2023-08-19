@@ -9,6 +9,10 @@ function get_dataloader(data_name, data_path, batch_size, augment_data=true)
     return DataLoaderOCT(data_path, batch_size, augment_data)
 end
 
+function get_dataloader_MNIST(data_name, data_path, batch_size)
+    return DataLoaderMNIST(data_path, batch_size)
+end
+
 function vae_to_device!(vae::VAE, device)
     vae.encoder = vae.encoder |> device
     vae.μ_layer = vae.μ_layer |> device

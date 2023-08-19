@@ -9,11 +9,11 @@ include("data_manipulation/data_loader_MNIST.jl")
 include("data_manipulation/data_loader_OCT.jl")
 
 function main()
-    # data_name = "MNIST"
-    # data_path = "data/MNIST_small"
-    data_name = "OCT"
-    data_path = "data/data_resized/bm3d_224_train" # have train here just to see what the images look like
-    save_nr = 518
+    data_name = "MNIST"
+    data_path = "data/MNIST"
+    # data_name = "OCT"
+    # data_path = "data/data_resized/bm3d_224_train" # have train here just to see what the images look like
+    save_nr = 105
 
     model_path = "saved_models/save_nr_$(save_nr).jld2"
     vae = load(model_path, "vae")
@@ -25,11 +25,12 @@ function main()
     vae = vae |> DEVICE
 
     if data_name == "OCT"
-        loader = DataLoaderOCT(data_path, BATCH_SIZE, false) # Have true here just to see what the images look like
+        loader = DataLoaderOCT(data_path, BATCH_SIZE, false)
     else
         loader = DataLoaderMNIST(data_path, BATCH_SIZE)
     end
     output_image(vae, loader)
+    println("Done!")
     return nothing
 end
 

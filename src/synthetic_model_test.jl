@@ -13,7 +13,7 @@ include("data_manipulation/plot_losses_synthetic.jl")
 include("VAE.jl")
 
 function main()
-    load_model_nr = 58
+    load_model_nr = 45
     load_model_nr_vae = 526
     try_nr = 8
 
