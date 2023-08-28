@@ -15,9 +15,7 @@ include("data_manipulation/plot_losses.jl")
 function main()
     epochs = 100000
     load_model_nr = 0
-    # try_nr = 37
     try_nr = 41
-    # evaluate_interval = 5000
     evaluate_interval = 20000
 
     data_name = "OCT"
@@ -35,15 +33,11 @@ function main()
         vae = VAE(encoder, μ_layer, logvar_layer, decoder)
     end
 
-    # To print the VAE structure:
     print_vae(vae)
     vae_to_device!(vae, DEVICE)
 
     ps = params(vae)
-
-    # step_decay = StepDecay(0.001, 0.9, 1)  # create a scheduler
-    opt = ADAM(0.001)  # initialize with initial learning rate
-
+    opt = ADAM(0.001)
     vgg = vgg_subnetworks()
 
     start_time = time()
@@ -65,6 +59,7 @@ function main()
             end
 
             images = images |> DEVICE
+            # β_nr will linearly increase (used to increase β in the first 5 epochs)
             β_nr = (batch_nr * BATCH_SIZE + (epoch - 1) * IMAGES_TRAIN + load_model_nr * evaluate_interval) / IMAGES_TRAIN
 
             train!(vae, images, opt, ps, loss_saver, vgg, loss_normalizers, β_nr, statistics_saver, true, epoch)

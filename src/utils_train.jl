@@ -137,15 +137,6 @@ function save_statistics(statistic, filename)
 end
 
 function print_statistics(statistics_saver, try_nr)
-    # mean_μ = statistics_saver.sum_mu / statistics_saver.counter
-    # mean_logvar = statistics_saver.sum_logvar / statistics_saver.counter
-
-    # var_μ = statistics_saver.sum_mu2 / statistics_saver.counter - mean_μ^2
-    # var_logvar = statistics_saver.sum_logvar2 / statistics_saver.counter - mean_logvar^2
-
-    # println("Mean of μ: $mean_μ, Variance of μ: $var_μ")
-    # println("Mean of logvar: $mean_logvar, Variance of logvar: $var_logvar")
-
     mu_mean_values = mean(statistics_saver.mu_mean_values)
     logvar_mean_values = mean(statistics_saver.logvar_mean_values)
     mu_variance_values = mean(statistics_saver.mu_variance_values)
@@ -157,11 +148,6 @@ function print_statistics(statistics_saver, try_nr)
         mkdir(folder_name)
     end
 
-    # Usage
-    # save_statistics(mean_μ, folder_name * "mean_mu.txt")
-    # save_statistics(var_μ, folder_name * "var_mu.txt")
-    # save_statistics(mean_logvar, folder_name * "mean_logvar.txt")
-    # save_statistics(var_logvar, folder_name * "var_logvar.txt")
     save_statistics(mu_mean_values, folder_name * "mean_mu.txt")
     save_statistics(logvar_mean_values, folder_name * "mean_logvar.txt")
     save_statistics(mu_variance_values, folder_name * "var_mu.txt")

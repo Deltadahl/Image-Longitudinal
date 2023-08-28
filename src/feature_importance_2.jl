@@ -18,7 +18,7 @@ function get_feature_importance(vae::VAE, device)
     # Initialize the feature importance vector
     feature_importance = zeros(LATENT_DIM) |> device
     n_images = 0
-    n_runs = 3000
+    n_runs = 1_000_000
     z = randn(Float32, (n_runs, LATENT_DIM)) |> device
     for i = 1:n_runs
         z_prim = vae.μ_layer(vae.encoder(vae.decoder(z[i, :])))

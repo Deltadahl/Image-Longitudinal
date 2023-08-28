@@ -11,6 +11,7 @@ struct DataLoaderOCT
     data_augmentation::Bool
 end
 
+# NOT used at the moment.
 function undersample_dataset(filenames)
     # Create a dictionary to hold the filenames for each class
     classes = Dict("CNV" => [], "DME" => [], "DRUSEN" => [], "NORMAL" => [])
@@ -108,18 +109,6 @@ function next_batch(loader::DataLoaderOCT, start_idx::Int)
                 reverse!(image, dims=2)
             end
 
-            # TODO use this when OCT images gives better results
-            # r = rand()
-            # if r < 0.3
-            #     # Generate a random brightness change factor between -0.2 and 0.2
-            #     brightness_factor = 0.2 * (rand() - 0.5)
-            #     image = adjust_brightness(image, brightness_factor)
-            # elseif r < 0.6
-            #     # Generate a random contrast change factor between -0.2 and 0.2
-            #     contrast_factor = 0.8 + 0.4 * rand() # random contrast factor between 0.8 (decrease) and 1.2 (increase)
-            #     image = adjust_contrast(image, contrast_factor)
-            # end
-
             # Generate a random starting height for cropping (the upper bound ensures the cropped portion will fit within the image)
             start_h = rand(1:(height-new_height+1))
         else
@@ -134,8 +123,8 @@ function next_batch(loader::DataLoaderOCT, start_idx::Int)
         push!(images, image)
         push!(labels, get_label(loader, filename))
 
-        # Explicitly delete the image variable to free up memory
-        finalize(image) # TODO see if this changes anything
+        # Explicitly delete the image variable to free up memory, don't know if this really helps.
+        finalize(image)
     end
 
     # Concatenate all images along the 4th dimension to form a single batch

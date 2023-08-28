@@ -10,7 +10,6 @@ include("VAE.jl")
 
 
 function get_matrix(vae, loader; epoch=0)
-    # excluded_features = [7, 92, 78]
     pop_size = 100
 
     latent_vae = zeros(Float32, LATENT_DIM, pop_size)

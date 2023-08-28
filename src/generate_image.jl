@@ -24,7 +24,6 @@ function output_image(vae, loader; epoch=0)
     images, labels = first(loader)
     images = images |> DEVICE
 
-    # reconstructed, _, _ = vae(images)
     encoded = vae.encoder(images)
     μ = vae.μ_layer(encoded)
     reconstructed = vae.decoder(μ)
@@ -36,9 +35,9 @@ function output_image(vae, loader; epoch=0)
     original_image = cpu(images[:,:,1,1])
     reconstructed_x2 = cpu(reconstructed_x2[:,:,1,1])
 
-    reconstructed_image = Images.colorview(Gray, reconstructed)  # remove the singleton dimensions
-    original_image = Images.colorview(Gray, original_image)  # remove the singleton dimensions
-    reconstructed_x2 = Images.colorview(Gray, reconstructed_x2)  # remove the singleton dimensions
+    reconstructed_image = Images.colorview(Gray, reconstructed)
+    original_image = Images.colorview(Gray, original_image)
+    reconstructed_x2 = Images.colorview(Gray, reconstructed_x2)
 
 
     # Save the reconstructed image
@@ -51,8 +50,6 @@ function output_image(vae, loader; epoch=0)
     if isempty(png_files)
         new_integer = 1
     else
-        # latest_integer = maximum(parse(Int, match(r"(\d+)-reconstructed_image.png", file).captures[1]) for file in png_files)
-        # latest_integer = maximum(parse(Int, match(r"^(\d+)-", file).captures[1]) for file in png_files)
         latest_integer = maximum(parse(Int, match(r"^(\d+)-", basename(file)).captures[1]) for file in png_files)
         new_integer = latest_integer + 1
     end
@@ -67,35 +64,6 @@ function output_image(vae, loader; epoch=0)
     generated_image = generate_image(vae)
     path_to_image = joinpath(OUTPUT_IMAGE_DIR, "$new_integer-$epoch-generated_image.png")
     save(path_to_image, generated_image)
-
-    # path_to_image = joinpath(OUTPUT_IMAGE_DIR, "$new_integer-$epoch-reconstructed_image_x2.png")
-    # save(path_to_image, reconstructed_x2)
-
-    # ----
-
-    # encoded = vae.encoder(images)
-    # μ = vae.μ_layer(encoded)
-    # # feature_nr = 7
-    # # μ[feature_nr,:] .= randn(Float32, size(μ[feature_nr,:])) |> DEVICE
-    # selected_features = [75, 25, 98]
-    # # excluded_features = [1, 2, 3]
-    # # excluded_features = [1]
-    # for feature_nr in 1:size(μ, 1)
-    #     if !(feature_nr in selected_features)
-    #         μ[feature_nr,:] .= randn(Float32, size(μ[feature_nr,:])) |> DEVICE
-    #     else
-    #         @show μ[feature_nr,:]
-    #     end
-    # end
-
-    # decoded = vae.decoder(μ)
-    # # Convert the reconstructed tensor back to an image
-    # reconstructed = cpu(decoded[:,:,1,1])
-    # reconstructed_image = Images.colorview(Gray, reconstructed)  # remove the singleton dimensions
-    # path_to_image = joinpath(OUTPUT_IMAGE_DIR, "$new_integer-$epoch-reconstructed_image_altered.png")
-    # save(path_to_image, reconstructed_image)
-
-    # ----
 
     return nothing
 end

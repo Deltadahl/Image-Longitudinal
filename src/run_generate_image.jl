@@ -9,10 +9,10 @@ include("data_manipulation/data_loader_MNIST.jl")
 include("data_manipulation/data_loader_OCT.jl")
 
 function main()
-    data_name = "MNIST"
-    data_path = "data/MNIST"
-    # data_name = "OCT"
-    # data_path = "data/data_resized/bm3d_224_train" # have train here just to see what the images look like
+    # data_name = "MNIST"
+    # data_path = "data/MNIST"
+    data_name = "OCT"
+    data_path = "data/data_resized/bm3d_224_train"
     save_nr = 105
 
     model_path = "saved_models/save_nr_$(save_nr).jld2"

@@ -9,7 +9,6 @@ addprocs(16)
 @everywhere using Statistics
 @everywhere using Glob
 
-# Place your functions check_vertical_path, process_image here with @everywhere prefix.
 @everywhere function check_vertical_path(mask, i, j)
     up_obsticle = false
     down_obsticle = false
@@ -110,9 +109,6 @@ function main()
         directory_modified = joinpath(base_path_modified, subfolder)
         files = glob("*.jpeg", directory)
 
-        # Use @distributed to perform the file processing in parallel.
-        # Note that we've modified the loop to use `pmap` function which is better for IO bounded operations.
-        # The function to be applied to each file and the collection of files are passed as arguments to `pmap`.
         @time pmap(file -> process_and_save_file(file, base_path_modified, subfolder), files)
     end
 end

@@ -5,10 +5,7 @@ using Printf
 using PaddedViews
 
 function resize_and_save_image(file::String, new_path::String, new_dims::Tuple{Int,Int})
-    # Load the image
     image = load(file)
-
-    # Get the size of the image
     dims = size(image)
 
     # If the image is larger than the target size, center crop it
@@ -30,7 +27,6 @@ function resize_and_save_image(file::String, new_path::String, new_dims::Tuple{I
         )
     end
 
-    # Save the resized/cropped image
     save(new_path, image)
 end
 
@@ -41,10 +37,7 @@ function process_images(old_path::String, new_path::String, new_dims::Tuple{Int,
 
     # Process all images
     for file in files
-        # Construct the new file path
         new_file_path = joinpath(new_path, basename(file))
-
-        # Resize and save the image
         resize_and_save_image(file, new_file_path, new_dims)
     end
 end

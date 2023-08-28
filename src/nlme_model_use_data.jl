@@ -1,4 +1,3 @@
-cd("/home/jrun/data/code/TemporalRetinaVAE/src")
 using JLD2
 using Images
 using Plots
@@ -7,32 +6,30 @@ using Statistics
 using Bootstrap
 include("nlme_model.jl")
 
+var_noise = 49.0
 pop_size = 100_000
 η_size = 3
 obstimes=0:0.5:10
 obstimes_orig=0:0.5:10
 
-filepath = "../saved_data/eta_predicted_by_nn_100k.jld2"
-η_pred = load(filepath, "eta_pred")
+theoretical_max = 1^2 / (1^2 + var_noise)
 
-filepath = "../saved_data/eta_approx_and_lv_data_100k.jld2"
-η_approx = load(filepath, "η_approx_matrix")
+# filepath = "../saved_data/eta_predicted_by_nn_100k.jld2"
+filepath = "../saved_data/noise_$(var_noise)_eta_pred.jld2"
+η_pred = load(filepath, "η_pred")
+# filepath = "../saved_data/eta_approx_and_lv_data_100k.jld2"
+filepath = "../saved_data/noise_$(var_noise)_eta_approx_and_lv_data_100k.jld2"
 
-filepath = "../saved_data/synth_data_pairs_100k.jld2"
-@time synth_data_pairs = load(filepath, "synth_data_pairs")
-pop = getindex.(synth_data_pairs, 1);
-imgs = getindex.(synth_data_pairs, 2);
-lvs = getindex.(synth_data_pairs, 3);
-ηs = getindex.(synth_data_pairs, 4);
+η_approx = load(filepath, "η_approx")
+η_true = load(filepath, "η_true_noise")
 
 function get_pop(eta_fun)
     pop = map(1:pop_size) do i
-        # η = (; η=lv[selected_features[1:3]])
         η = (; η=eta_fun(i))
 
         ## Create a subject that just stores some covariates and a dosing regimen
         no_obs_subj = Subject(;
-            covariates=(;true_η=η.η), # Store some relevant info
+            covariates=(;true_η=η.η), # Store some info
             id=i,
             events=DosageRegimen(1.0)
         )
@@ -43,7 +40,7 @@ function get_pop(eta_fun)
             no_obs_subj,
             nlme_params,
             η;
-            obstimes=obstimes # whatever seems appropriate
+            obstimes=obstimes
         )
 
         ## Make a Subject of our simulation. The data from no_obs_subj will tag along.
@@ -51,6 +48,10 @@ function get_pop(eta_fun)
         return subj
         # return (subj, img, lv, η)
     end
+end
+
+function eta_fun_true(i)
+    return η_true[:, i]
 end
 
 function eta_fun_pred(i)
@@ -61,67 +62,31 @@ function eta_fun_approx(i)
     return η_approx[:, i]
 end
 
-function eta_fun_noise1(i)
-    tmp = η_pred[:, i]
-    r = rand()
-    if r < 1/3
-        tmp[1] = 0
-    elseif r < 2/3
-        tmp[2] = 0
-    else
-        tmp[3] = 0
-    end
-    return tmp
-end
-
-function eta_fun_noise2(i)
-    tmp = η_pred[:, i]
-    r = rand()
-    if r < 1/3
-        tmp[2] = 0
-        tmp[3] = 0
-    elseif r < 2/3
-        tmp[1] = 0
-        tmp[3] = 0
-    else
-        tmp[1] = 0
-        tmp[2] = 0
-    end
-    return tmp
-end
-
 function eta_fun_average(i)
     return zeros(3)
 end
+
 function eta_fun_random(i)
     return randn(3)
 end
 
+pop = get_pop(eta_fun_true)
 pop_pred = get_pop(eta_fun_pred)
 pop_approx = get_pop(eta_fun_approx)
-pop_pred_noise1 = get_pop(eta_fun_noise1)
-pop_pred_noise2 = get_pop(eta_fun_noise2)
 pop_average = get_pop(eta_fun_average)
 pop_random = get_pop(eta_fun_random)
 
-
-i = 12
+i = 1
 sub = pop[i]
 sub_pred = pop_pred[i]
-sub_pred_noise1 = pop_pred_noise1[i]
-sub_pred_noise2 = pop_pred_noise2[i]
 sub_average = pop_average[i]
 id = sub.id
 dose_time = sub.events[1].time
 data = sub.observations.Outcome
 data_pred = sub_pred.observations.Outcome
-data_pred_noise1 = sub_pred_noise1.observations.Outcome
-data_pred_noise2 = sub_pred_noise2.observations.Outcome
 data_average = sub_average.observations.Outcome
 p1 = Plots.plot(obstimes_orig, data, title="ID: $id", markershape=:circle, label="True data", color=:black)
 Plots.plot!(obstimes, data_pred, markershape=:circle, label="Predicted data", color=:red)
-# Plots.plot!(obstimes, data_pred_noise1, markershape=:circle, label="Predicted data noise", color=:black)
-# Plots.plot!(obstimes, data_pred_noise2, markershape=:circle, label="Predicted data noise", color=:pink)
 Plots.plot!(obstimes, data_average, markershape=:circle, label="Average data", color=:orange)
 Plots.xlabel!(p1, "Time")
 Plots.ylabel!(p1, "Outcome")
@@ -137,17 +102,66 @@ end
 
 get_mse_long(pop, pop_pred)
 get_mse_long(pop, pop_approx)
-get_mse_long(pop, pop_pred_noise1)
-get_mse_long(pop, pop_pred_noise2)
 get_mse_long(pop, pop_average)
 get_mse_long(pop, pop_random)
 
+# Calculate the R^2 correlation for the longitudinal data
+function get_r2_long(pop1, pop2)
+    SS_res = 0.0
+    SS_tot = 0.0
+    pop_size = length(pop1)  # Assuming pop1 and pop2 have the same length
+
+    # Calculate the mean of the true data
+    y_bar = mean([mean(subpop.observations.Outcome) for subpop in pop1])
+
+    for i = 1:pop_size
+        # Residual sum of squares
+        SS_res += sum((pop1[i].observations.Outcome .- pop2[i].observations.Outcome).^2)
+
+        # Total sum of squares
+        SS_tot += sum((pop1[i].observations.Outcome .- y_bar).^2)
+    end
+
+    # Compute R^2
+    r2 = 1 - (SS_res / SS_tot)
+
+    return (r2, r2/theoretical_max)
+end
+
+get_r2_long(pop, pop_pred)
+get_r2_long(pop, pop_approx)
+get_r2_long(pop, pop_average)
+get_r2_long(pop, pop_random)
+
+# Calculate the R^2 correlation for the random effects
+function get_r2_η(η_real, η_compare)
+    SS_res = 0.0
+    SS_tot = 0.0
+
+    # Calculate the mean of the true data
+    η_bar = mean([mean(η_sub) for η_sub in η_real])
+
+    for i = 1:pop_size
+        # Residual sum of squares
+        SS_res += sum((η_real[i] .- η_compare[i]).^2)
+
+        # Total sum of squares
+        SS_tot += sum((η_real[i] .- η_bar).^2)
+    end
+
+    # Compute R^2
+    r2 = 1 - (SS_res / SS_tot)
+
+    return (r2, r2/theoretical_max)
+end
+
+get_r2_η(η_true, η_pred)
+get_r2_η(η_true, η_approx)
+get_r2_η(η_true, η_zero)
+get_r2_η(η_true, η_random)
 
 # Set the number of bootstrap samples
 n_bootstraps = 1000
-
-# Set the random seed for reproducibility
-Random.seed!(123)
 
 # Function to calculate MSE on bootstrap sample
 function mse(x::Vector{Tuple{Vector{Float64}, Vector{Float64}}})
@@ -156,7 +170,7 @@ function mse(x::Vector{Tuple{Vector{Float64}, Vector{Float64}}})
 end
 
 function get_bootstrap(pop1::Vector, pop2::Vector)
-    # Combine your populations into one vector of tuples, where each tuple contains corresponding vectors of outcomes from pop1 and pop2
+    # Combine populations into one vector of tuples, where each tuple contains corresponding vectors of outcomes from pop1 and pop2
     pop_vector = [(pop1[i].observations.Outcome, pop2[i].observations.Outcome) for i in 1:length(pop1)]
 
     # Perform the bootstrap
@@ -170,31 +184,15 @@ end
 
 @show get_bootstrap(pop[1:pop_size], pop_pred)
 @show get_bootstrap(pop[1:pop_size], pop_approx)
-@show get_bootstrap(pop[1:pop_size], pop_pred_noise1)
-@show get_bootstrap(pop[1:pop_size], pop_pred_noise2)
 @show get_bootstrap(pop[1:pop_size], pop_average)
 @show get_bootstrap(pop[1:pop_size], pop_random)
 
-
-
-ηs[i].η
-
-ηs_matrix = similar(η_pred)
-η_pred_noise1 = similar(η_pred)
-η_pred_noise2 = similar(η_pred)
 η_zero = zeros(size(η_pred))
 η_random = randn(size(η_pred))
-for i = 1:size(ηs_matrix[1,:])[1]
-    ηs_matrix[:,i] = ηs[i].η
-    η_pred_noise1[:,i] = eta_fun_noise1(i)
-    η_pred_noise2[:,i] = eta_fun_noise2(i)
-end
 
-mean((ηs_matrix .- η_pred).^2)
-mean((ηs_matrix .- η_pred_noise1).^2)
-mean((ηs_matrix .- η_pred_noise2).^2)
-mean((ηs_matrix .- η_zero).^2)
-mean((ηs_matrix .- η_random).^2)
+mean((η_true .- η_pred).^2)
+mean((η_true .- η_zero).^2)
+mean((η_true .- η_random).^2)
 
 mse(x::Matrix) = mean((x[:,1] .- x[:,2]).^2)
 n_bootstraps = 1000
@@ -204,11 +202,9 @@ function get_bootstrap(η_1, η_2)
     bootstrap_results = bootstrap(mse, η_matrix, BasicSampling(n_bootstraps))
     bootstrap_ci = confint(bootstrap_results, BasicConfInt(0.95))
 end
-@show get_bootstrap(ηs_matrix, η_pred)
-@show get_bootstrap(ηs_matrix, η_pred_noise1)
-@show get_bootstrap(ηs_matrix, η_pred_noise2)
-@show get_bootstrap(ηs_matrix, η_zero)
-@show get_bootstrap(ηs_matrix, η_random)
+# @show get_bootstrap(η_true, η_pred)
+# @show get_bootstrap(η_true, η_zero)
+# @show get_bootstrap(η_true, η_random)
 
 function plot_data()
     Width = 3
@@ -224,41 +220,32 @@ function plot_data()
     for j in 1:Height
         for k in 1:Width
             i = (j-1)*Width + k  # Calculate i based on j and k
-            # i = (j-1)*Width + k  + 6*12# TODO remove
 
             sub = pop[i]
             sub_pred = pop_pred[i]
-            sub_pred_noise1 = pop_pred_noise1[i]
-            sub_pred_noise2 = pop_pred_noise2[i]
             id = sub.id
             dose_time = sub.events[1].time
             data = sub.observations.Outcome
             data_pred = sub_pred.observations.Outcome
-            data_pred_noise1 = sub_pred_noise1.observations.Outcome
-            data_pred_noise2 = sub_pred_noise2.observations.Outcome
 
             color1 = :blue
             color2 = :red
             color3 = :orange
-            color4 = :black
-            color5 = :pink
             linewidth=1.4
 
-            Plots.plot!(p[j,k], obstimes_orig, data, title="ID: $id", titlefontsize=8, label=(k == ceil(Int, Width) && j == 1 ? "True data" : ""), legend=false, ylim=(-0.05, global_ymax+0.05), grid=:both, linewidth=linewidth, linecolor=color1)#, markershape=:circle, markersize=1)
+            Plots.plot!(p[j,k], obstimes_orig, data, title="ID: $id", titlefontsize=8, label=(k == ceil(Int, Width) && j == 1 ? "True data" : ""), legend=false, ylim=(-0.05, global_ymax+0.05), grid=:both, linewidth=linewidth, linecolor=color1)
             Plots.plot!(p[j,k], obstimes, data_pred, label=(k == ceil(Int, Width) && j == 1 ? "Predicted data" : ""), linecolor=color2, linewidth=linewidth)
-            # Plots.plot!(p[j,k], obstimes, data_pred_noise1, label=(k == ceil(Int, Width) && j == 1 ? "Predicted data noise 1" : ""), linecolor=color4, linewidth=linewidth)
-            # Plots.plot!(p[j,k], obstimes, data_pred_noise2, label=(k == ceil(Int, Width) && j == 1 ? "Predicted data noise 2" : ""), linecolor=color5, linewidth=linewidth)
             Plots.plot!(p[j,k], obstimes, data_average, label=(k == ceil(Int, Width) && j == 1 ? "Average data" : ""), linecolor=color3, linewidth=linewidth)
 
-            # If it's the bottom middle subplot, label x-axis as "Time"
-            if j == Height && k == 1#ceil(Int, Width/2)
+            # Label the bottom left x-axis as "Time"
+            if j == Height && k == 1
                 Plots.xlabel!(p[j,k], "Time")
             elseif j != Height
                 Plots.plot!(p[j,k], xticks=:grid)
             end
 
-            # If it's the left middle subplot, label y-axis as "Outcome"
-            if k == 1 && j == Height#ceil(Int, Height/2) == j #j == Height÷2
+            # Label the bottom left y-axis as "Outcome"
+            if k == 1 && j == Height
                 Plots.ylabel!(p[j,k], "Outcome")
             elseif k != 1
                 Plots.plot!(p[j,k], yticks=:grid)
@@ -268,12 +255,8 @@ function plot_data()
         end
     end
 
-    # Legend above all plots in the middle
-    # The "invisible" plot
+    # The "invisible" plot to make legend
     Plots.plot!(p[1, ceil(Int, Width)], [], [], label="", legend=:topright, alpha=0.0, legendfontsize=10)
-    # Plots.plot!(p[1, ceil(Int, Width/2)], [], [], label="", leg = Symbol(:outer, :righttop), alpha=0.0, legendfontsize=10)
-
-    # Plots.plot!(p[1, ceil(Int, Width/2)], [], [], label="", leg = Symbol(:outer, :top), alpha=0.0)
     savefig("../saved_figures/comparison_12_3.png")
     Plots.display(p)
 end

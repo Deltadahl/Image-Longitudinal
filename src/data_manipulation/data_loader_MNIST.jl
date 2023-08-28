@@ -46,7 +46,6 @@ function next_batch(loader::DataLoaderMNIST, start_idx::Int)
         image = imresize(image, (224, 224))
         # Reshape the image to the format (height, width, channels, batch size)
         image = reshape(image, size(image)..., 1, 1)
-        # image = repeat(image, outer=(1,1,3)) # JUST DEVELOPING....
         push!(images, image)
         push!(labels, get_label(loader, filename))
     end

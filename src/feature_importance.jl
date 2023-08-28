@@ -13,9 +13,7 @@ function get_feature_importance(vae::VAE)
     feature_importance = zeros(LATENT_DIM)
     n_images = 0
 
-    for i in 1:10
-
-        # μ = vae.μ_layer(vae.encoder(images))
+    for i in 1:10_000
         μ = randn(Float32, (LATENT_DIM, BATCH_SIZE)) |> DEVICE
 
         # Compute the perturbation
@@ -30,7 +28,7 @@ function get_feature_importance(vae::VAE)
             decoded = vae.decoder(μ)
             decoded_perturbed = vae.decoder(μ_perturbed)
 
-            # Compute the mean square error (MSE) between the decoded images
+            # Compute the mean square error between the decoded images
             mse = mean((decoded .- decoded_perturbed).^2, dims=(1,2,3))
 
             # Update the feature importance
@@ -54,8 +52,6 @@ function get_feature_importance(vae::VAE)
 
     return feature_importance
 end
-
-
 
 function main()
     save_nr = 526

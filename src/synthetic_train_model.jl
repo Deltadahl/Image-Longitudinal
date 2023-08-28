@@ -13,43 +13,42 @@ include("data_manipulation/plot_losses_synthetic.jl")
 include("VAE.jl")
 
 function main()
-    # Load data
-
-    epochs = 100000
-    load_model_nr = 43
+    var_noise = 99.0
+    epochs = 86
+    load_model_nr = 0
     load_model_nr_vae = 526
-    try_nr = 8
+    try_nr = 17
 
-    evaluate_interval = 100_000
-    batch_size = 24
+    evaluate_interval = 16000 * 6
+    batch_size = 16
 
-    filepath = "data/synthetic/eta_and_lv_data_2_new.jld2"
-    η_matrix = load(filepath, "eta_matrix")
+    # filepath = "data/synthetic/eta_and_lv_data_2_1M.jld2"
+    filepath = "data/synthetic/noise_$(var_noise)_eta_approx_and_lv_data_1000k.jld2"
+    η_matrix = load(filepath, "η_approx")
+    # η_matrix = Float32.(hcat([t.η for t in η_approx]...))
     η_matrix = Float32.(η_matrix)
     lvs_matrix = load(filepath, "lvs_matrix")
 
+    # Just to check that the MSE with the selected dim is much lower than with the other dims
     # mse lvs_matrix 92, 111 and 50 vs η_matrix
     @show mean((lvs_matrix[92, :] .- η_matrix[1,:]).^2)
     @show mean((lvs_matrix[111, :] .- η_matrix[1,:]).^2)
     @show mean((lvs_matrix[50, :] .- η_matrix[1,:]).^2)
     println()
-
     @show mean((lvs_matrix[92, :] .- η_matrix[2,:]).^2)
     @show mean((lvs_matrix[111, :] .- η_matrix[2,:]).^2)
     @show mean((lvs_matrix[50, :] .- η_matrix[2,:]).^2)
     println()
-
     @show mean((lvs_matrix[92, :] .- η_matrix[3,:]).^2)
     @show mean((lvs_matrix[111, :] .- η_matrix[3,:]).^2)
     @show mean((lvs_matrix[50, :] .- η_matrix[3,:]).^2)
 
-    num_samples = size(lvs_matrix, 2)  # number of columns = number of samples
+    num_samples = size(lvs_matrix, 2)
     split_idx = Int(floor(0.95 * num_samples))
     # Split the data into training and test sets
     lvs_train = lvs_matrix[:, 1:split_idx]
-    η_train = η_matrix[:, 1:split_idx]
-
     lvs_test = lvs_matrix[:, split_idx+1:end]
+    η_train = η_matrix[:, 1:split_idx]
     η_test = η_matrix[:, split_idx+1:end]
 
     # Pair training and test data with their respective labels
@@ -57,7 +56,7 @@ function main()
     test_data = (lvs_test, η_test)
 
     train_dataloader = DataLoader(train_data, batchsize=batch_size, shuffle=true)
-    test_dataloader = DataLoader(test_data, batchsize=batch_size, shuffle=false)  # usually no need to shuffle test data
+    test_dataloader = DataLoader(test_data, batchsize=batch_size, shuffle=false)
 
     train_dataloader = train_dataloader |> DEVICE
     test_dataloader = test_dataloader |> DEVICE
@@ -78,11 +77,10 @@ function main()
     synthetic_model.to_random_effects = synthetic_model.to_random_effects |> DEVICE
     synthetic_model = synthetic_model |> DEVICE
     vae.decoder = vae.decoder |> DEVICE
-    vae = vae |> DEVICE # TODO test to remove this
+    vae = vae |> DEVICE # Probably not needed.
 
     ps = params(synthetic_model)
-
-    opt = ADAM(0.001)  # initialize with initial learning rate
+    opt = ADAM(0.001)
 
     start_time = time()
     save_nr = 1

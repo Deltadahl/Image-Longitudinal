@@ -60,7 +60,7 @@ plotgrid(sim[1:12]; sim = (; markersize=0))
 
 
 ####################################################
-# Demonstrera att vi kan gå bakvägen
+# Demonstrate that we can go the other way around
 
 
 sim = simobs(datamodel, _pop, p)
