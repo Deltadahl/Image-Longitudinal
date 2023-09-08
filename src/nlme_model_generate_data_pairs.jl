@@ -17,10 +17,10 @@ pop_size = 100
     η = (; η=lv[selected_features[1:3]])
 
     # img = vae.decoder(lv)
-    # img = "PLACE HOLDER"
-    img = load("../saved_data/imgs_100k/img_$i.png")
-    img = Float32.(Gray.(img))
-    img = reshape(img, size(img)..., 1, 1)
+    img = "PLACE HOLDER"
+    # img = load("data/synthetic/imgs_100k/img_$i.png")
+    # img = Float32.(Gray.(img))
+    # img = reshape(img, size(img)..., 1, 1)
 
     ## Create a subject that just stores some covariates and a dosing regimen
     no_obs_subj = Subject(;

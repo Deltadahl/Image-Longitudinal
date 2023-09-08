@@ -13,11 +13,11 @@ include("data_manipulation/plot_losses_synthetic.jl")
 include("VAE.jl")
 
 function main()
-    var_noise = 99.0
+    var_noise = 0.0
     epochs = 86
     load_model_nr = 0
     load_model_nr_vae = 526
-    try_nr = 17
+    try_nr = 18
 
     evaluate_interval = 16000 * 6
     batch_size = 16
