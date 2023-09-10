@@ -2,16 +2,16 @@
 
 This repository holds the code for the Master's Thesis titled "Bridging Medical Images and Longitudinal Data: Synthetic Dataset Generation via VAEs and NLME Models" by Simon Carlson. The research was conducted at the Department of Mathematical Sciences, Chalmers University of Technology, Sweden, in collaboration with Pumas-AI, Inc., USA. The thesis was defended on August 24, 2023.
 
-## For Pumas-AI Team
+## For Pumas-AI Team:
 
 ### Trained Variational Autoencoder (VAE)
 
-1. **Location**: The trained VAE is saved in `saved_models/save_nr_526.jld2`.
+1. - **Location**: The trained VAE is saved in `saved_models/save_nr_526.jld2`.
     - **Loading the Model**: Execute `vae = load("saved_models/save_nr_526.jld2", "vae")`. This is demonstrated in `src/train_model.jl`. Ensure the necessary files, like `src/VAE.jl`, are included.
-    - **GPU Acceleration**: To move the model to the GPU for faster computation, run `vae_to_device!(vae, gpu)`.
+    - **GPU Acceleration**: To move the model to the GPU for faster computation, run `vae_to_device!(vae, gpu)`, which is located in `src\utils_train.jl`.
     - **Usage Example**:
         ```julia
-        z = randn(Float32, LATENT_DIM) |> DEVICE
+        z = randn(Float32, LATENT_DIM) |> gpu  # LATENT_DIM = 128
         generated_img = vae.decoder(z)
         ```
     - **Architecture**: Refer to `src/VAE.jl` for the architecture.
@@ -19,20 +19,21 @@ This repository holds the code for the Master's Thesis titled "Bridging Medical 
 
 ### OCT Image Data
 
-2. **Raw Data**: Found in `data/CellData/OCT/`.
+2. - **Raw Data**: Found in `data/CellData/OCT/`.
     - **Preprocessed Data**: Resized to 224x224 and located at `data/data_resized`.
 
 ### Synthetic Data
 
 3. - **Location**: `data/synthetic/`.
-    - **Synthetic Images**: The folder `imgs_100k` contains 100,000 synthetic images. The same images are used for all noise levels. Additional images can be easily generated with the VAE's decoder (see 1.3).
-    - **Latent Variables and Random Effects**: Files named `noise_NOISE_eta_approx_and_lv_data_100k.jld2` contain various data. The `NOISE` variable can be {0.0, 1.0, 9.0, 18.0, 49.0}.
-    - **File Contents**: The data is stored in a dictionary with keys `"lvs_matrix", "η_approx", and "η_true_noise"`.
+    - **Synthetic Images**: The folder `imgs_100k` contains 100,000 synthetic images. The same images are used for all noise levels. Additional images can be easily generated with the VAE's decoder `vae.decoder(z)`.
+    - **Latent Variables and Random Effects**: Files named `noise_NOISE_eta_approx_and_lv_data_100k.jld2` contain various data (dictionary with keys: {"η_approx", "lvs_matrix","η_true", "η_true_noise"}). The `NOISE` variable can be {0.0, 1.0, 9.0, 18.0, 49.0}.
+    - **File Contents**: The data is stored in a dictionary with keys `η_approx,` `lvs_matrix`, `η_true`, and `η_true_noise`.
     - **Longitudinal Data**: Generated in `src/nlme_model_use_data.jl`.
 
 ### Neural Networks (NNs)
 
-4. - **Architecture**: Found in `src/synthetic_model.jl`.
+4. - **Usage:** Maps synthetic images to random effects.
+    - **Architecture**: Found in `src/synthetic_model.jl`.
     - **Training Script**: `src/train_synthetic_model.jl`.
     - **Usage**: `src/synthetic_model_use_data.jl`.
     - **Trained Models**: Saved in `synthetic_saved_models/noise_NOISE_save_nr_86.jld2`.

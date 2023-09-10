@@ -55,7 +55,7 @@ function main()
         "test/DME",
         "test/CNV",
     ]
-    new_dims = (420, 420) # TODO can change this later
+    new_dims = (420, 420) # TODO Change to desired size
 
     for subfolder in subfolders
         old_path = joinpath(base_path, subfolder)

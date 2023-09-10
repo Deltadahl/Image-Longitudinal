@@ -89,4 +89,4 @@ error_zero = mean((zeros(size(η_true_noise)) .- η_true_noise).^2)
 error_random = mean((randn(size(η_true_noise)) .- η_true_noise).^2)
 
 lvs_matrix = hcat(lvs...)
-save("../saved_data/noise_$(var_noise)_eta_approx_and_lv_data_$(Int(pop_size/1000))k.jld2", "η_approx", η_approx_matrix, "lvs_matrix", lvs_matrix, "η_true", η_true, "η_true_noise", η_true_noise)
+save("../data/synthetic/noise_$(var_noise)_eta_approx_and_lv_data_$(Int(pop_size/1000))k.jld2", "η_approx", η_approx_matrix, "lvs_matrix", lvs_matrix, "η_true", η_true, "η_true_noise", η_true_noise)

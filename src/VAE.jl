@@ -220,4 +220,5 @@ function loss(m::VAE, x, loss_saver::LossSaver, vgg, loss_normalizers, β_nr, st
     return reconstruction_loss + kl_divergence
 end
 
+# Train all components of the VAE.
 Flux.trainable(m::VAE) = (m.encoder, m.μ_layer, m.logvar_layer, m.decoder)

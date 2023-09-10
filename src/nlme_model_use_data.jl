@@ -14,11 +14,9 @@ obstimes_orig=0:0.5:10
 
 theoretical_max = 1^2 / (1^2 + var_noise)
 
-# filepath = "../saved_data/eta_predicted_by_nn_100k.jld2"
-filepath = "../saved_data/noise_$(var_noise)_eta_pred.jld2"
+filepath = "../data/synthetic/noise_$(var_noise)_eta_pred.jld2"
 η_pred = load(filepath, "η_pred")
-# filepath = "../saved_data/eta_approx_and_lv_data_100k.jld2"
-filepath = "../saved_data/noise_$(var_noise)_eta_approx_and_lv_data_100k.jld2"
+filepath = "../data/synthetic/noise_$(var_noise)_eta_approx_and_lv_data_100k.jld2"
 
 η_approx = load(filepath, "η_approx")
 η_true = load(filepath, "η_true_noise")
