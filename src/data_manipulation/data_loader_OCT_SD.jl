@@ -87,6 +87,7 @@ Base.iterate(loader::DataLoaderOCT, state=1) = state > length(loader.filenames) 
 function next_batch(loader::DataLoaderOCT, start_idx::Int)
     end_idx = min(start_idx + loader.batch_size - 1, length(loader.filenames))
 
+
     if start_idx > end_idx
         return nothing, nothing
     end
@@ -100,7 +101,8 @@ function next_batch(loader::DataLoaderOCT, start_idx::Int)
         image = load(joinpath(loader.dir, filename))
         # Convert the image to grayscale and then to Float32
         image = Float32.(Gray.(image))
-
+        image = imresize(image, (224, 224))
+        
         height = 224
         new_height = 190
         if loader.data_augmentation
@@ -130,5 +132,6 @@ function next_batch(loader::DataLoaderOCT, start_idx::Int)
     # Concatenate all images along the 4th dimension to form a single batch
     images = cat(images..., dims=4)
     labels = Flux.onehotbatch(labels, 1:4)
-    return images, labels
+
+    return images, labels, loader.filenames[start_idx:end_idx][1]
 end
