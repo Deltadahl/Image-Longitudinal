@@ -22,14 +22,17 @@ function main()
     load_model_nr = 36
     load_model_nr_vae = 526
     batch_size = 12
+    imgs_to_consider = 100_000
+    # imgs_to_consider = 1000
 
+    image_data_dir = "saved_eta_and_lv_data/json/output_test/" #TODO ....#######.....
     filepath = "saved_eta_and_lv_data/noise_$(var_noise)_eta_approx_and_lv_data_100k.jld2"
     # filepath = "data/synthetic/noise_$(var_noise)_eta_approx_and_lv_data_100k.jld2"
     η_matrix = load(filepath, "η_approx")
     η_matrix = Float32.(η_matrix)
     lvs_matrix = load(filepath, "lvs_matrix")
-    η_true = load(filepath, "η_true_noise")
-    # η_true = lvs_matrix[[92, 111, 50], 1:imgs_to_consider]
+    # η_true = load(filepath, "η_true_noise")
+    η_true = lvs_matrix[[92, 111, 50], 1:imgs_to_consider]
 
     # Just to check that the MSE with the selected dim is much lower than with the other dims
     # mse lvs_matrix 92, 111 and 50 vs η_matrix
@@ -46,8 +49,6 @@ function main()
     @show mean((lvs_matrix[50, :] .- η_matrix[3,:]).^2)
 
     # Pair training and test data with their respective labels
-    imgs_to_consider = 100_000
-    # imgs_to_consider = 200
     η_approx = η_matrix[:,1:imgs_to_consider]
     test_data = (collect(1:imgs_to_consider), η_approx)
     # test_data = (lvs_matrix[:,1:imgs_to_consider], η_approx)
@@ -56,7 +57,6 @@ function main()
     test_dataloader = test_dataloader |> DEVICE
 
     model_name = "noise_$(var_noise)_save_nr_$(load_model_nr).jld2"
-    # model_name_vae = "save_nr_$(load_model_nr_vae).jld2"
 
     synthetic_model = load("synthetic_saved_models/" * model_name, "model")
     # vae = load("saved_models/" * model_name_vae, "vae")
@@ -93,7 +93,7 @@ function main()
         images
     end
 
-    image_data_dir = "saved_eta_and_lv_data/json/output/"
+
     image_subfolders = readdir(image_data_dir, join=true)
 
     images = load_images_and_sort_globally(image_subfolders) # Ensure this function loads images or paths
@@ -109,13 +109,20 @@ function main()
     for (idx, (x_batch_test, y_batch_test)) in enumerate(test_dataloader)
         if idx % 50 == 0
             println("idx: ", idx)
-        #    break
         end
 
         batch_images = [CUDA.cu(Float32.(preprocess_image(images[x]))) for x in Array(x_batch_test)]
-        # Stack images into a 4D array and add channel dimension
         stacked_images = cat(batch_images..., dims=4)
         imgs = reshape(stacked_images, size(stacked_images, 1), size(stacked_images, 2), 1, size(stacked_images, 4))
+
+        ######
+        cpu_y_batch_test = y_batch_test |> cpu
+        if abs(cpu_y_batch_test[3,1]) > 2.0
+            cpu_img_tmp = imgs |> cpu
+            println("saving image ...")
+            save("TEST/$(cpu_y_batch_test[3,1]).jpeg", cpu_img_tmp[:, :, 1, 1])
+        end
+        ######
 
         # imgs = vae.decoder(x_batch_test)
         y_approx = synthetic_model(imgs)
@@ -123,45 +130,50 @@ function main()
         # imgs = imgs |> cpu
         η_pred[:, (idx-1)*batch_size+1:min(idx*batch_size, imgs_to_consider)] = y_approx
         # imgs_list[:, :, :, (idx-1)*batch_size+1:min(idx*batch_size, imgs_to_consider)] = imgs
+        # @show y_approx
+        # @show y_batch_test
+        # @show η_true[:, (idx-1)*batch_size+1:min(idx*batch_size, imgs_to_consider)]
+        # println()
     end
+
 
     @show mean((η_pred .- η_approx).^2)
     @show mean((η_pred .- η_true).^2)
     @show mean((η_approx .- η_true).^2)
     @show mean((η_pred .- zeros(size(η_pred))).^2)
-    @show mean((η_pred .- randn(size(η_pred))).^2)
+    # @show mean((η_pred .- randn(size(η_pred))).^2)
     @show mean((η_approx .- zeros(size(η_pred))).^2)
-    @show mean((η_approx .- randn(size(η_pred))).^2)
+    # @show mean((η_approx .- randn(size(η_pred))).^2)
     @show mean((η_true .- zeros(size(η_pred))).^2)
-    @show mean((η_true .- randn(size(η_pred))).^2)
+    # @show mean((η_true .- randn(size(η_pred))).^2)
     @show mean(η_pred)
     @show var(η_pred)
     @show mean(η_approx)
     @show var(η_approx)
     @show mean(η_true)
     @show var(η_true)
-    @show size(η_pred)
+    # @show size(η_pred)
 
-    filename = "data/synthetic/noise_$(var_noise)_eta_pred.jld2"
-    save(filename, "η_pred", η_pred)
+    # filename = "data/synthetic/noise_$(var_noise)_eta_pred.jld2"
+    # save(filename, "η_pred", η_pred)
 
-    # Function to calculate MSE on bootstrap sample
-    mse(x::Matrix) = mean((x[:,1] .- x[:,2]).^2)
-    n_bootstraps = 1000 # 10000
-    function get_bootstrap(η_1, η_2)
-        η_matrix = hcat(vec(η_1), vec(η_2))
-        bootstrap_results = bootstrap(mse, η_matrix, BasicSampling(n_bootstraps))
-        bootstrap_ci = confint(bootstrap_results, BasicConfInt(0.95))
-    end
-    @show get_bootstrap(η_pred, η_approx)
-    @show get_bootstrap(η_pred, η_true)
-    @show get_bootstrap(η_approx, η_true)
-    @show get_bootstrap(η_pred, zeros(size(η_pred)))
-    @show get_bootstrap(η_pred, randn(size(η_pred)))
-    @show get_bootstrap(η_approx, zeros(size(η_pred)))
-    @show get_bootstrap(η_approx, randn(size(η_pred)))
-    @show get_bootstrap(η_true, zeros(size(η_pred)))
-    @show get_bootstrap(η_true, randn(size(η_pred)))
+    # # Function to calculate MSE on bootstrap sample
+    # mse(x::Matrix) = mean((x[:,1] .- x[:,2]).^2)
+    # n_bootstraps = 1000 # 10000
+    # function get_bootstrap(η_1, η_2)
+    #     η_matrix = hcat(vec(η_1), vec(η_2))
+    #     bootstrap_results = bootstrap(mse, η_matrix, BasicSampling(n_bootstraps))
+    #     bootstrap_ci = confint(bootstrap_results, BasicConfInt(0.95))
+    # end
+    # @show get_bootstrap(η_pred, η_approx)
+    # @show get_bootstrap(η_pred, η_true)
+    # @show get_bootstrap(η_approx, η_true)
+    # @show get_bootstrap(η_pred, zeros(size(η_pred)))
+    # @show get_bootstrap(η_pred, randn(size(η_pred)))
+    # @show get_bootstrap(η_approx, zeros(size(η_pred)))
+    # @show get_bootstrap(η_approx, randn(size(η_pred)))
+    # @show get_bootstrap(η_true, zeros(size(η_pred)))
+    # @show get_bootstrap(η_true, randn(size(η_pred)))
 
     return nothing
 end
