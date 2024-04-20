@@ -21,18 +21,18 @@ include("data_manipulation/plot_losses_synthetic.jl")
 # include("VAE.jl")
 
 function main()
-    # var_noise = 49.0  # TODO
+    # var_noise = 49.0  # NOTE
     epochs = 100
     load_model_nr = 0
     # load_model_nr_vae = 526
-    try_nr = 111   # TODO
+    try_nr = 111   # NOTE
 
     batch_size = 16
     evaluate_interval = 10000 * batch_size
 
     image_data_dir = "saved_eta_and_lv_data/json/output/"
     # filepath = "saved_eta_and_lv_data/noise_$(var_noise)_eta_approx_and_lv_data_1000k.jld2"
-    filepath = "saved_eta_and_lv_data/NEW_DATA/noise_1.0_eta_approx_and_lv_data_1000k.jld2"   # TODO
+    filepath = "saved_eta_and_lv_data/NEW_DATA/noise_1.0_eta_approx_and_lv_data_1000k.jld2"   # NOTE
     η_matrix = load(filepath, "η_approx")
     η_matrix = Float32.(η_matrix)
     lvs_matrix = load(filepath, "lvs_matrix")

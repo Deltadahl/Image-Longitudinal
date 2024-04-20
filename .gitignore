@@ -13,3 +13,8 @@ synthetic_saved_models
 remove_noise.py
 saved_eta_and_lv_data
 noise_0.0_eta_approx_and_lv_data_100k.json
+steps
+output_matrix
+saved_losses
+out.mp4
+synthetic_saved_losses

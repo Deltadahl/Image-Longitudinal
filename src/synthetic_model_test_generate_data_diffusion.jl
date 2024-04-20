@@ -17,9 +17,9 @@ include("data_manipulation/plot_losses_synthetic.jl")
 include("VAE.jl")
 
 function main()
-    var_noise = 0.0   #TODO change
+    var_noise = 0.0   # NOTE
     # load_model_nr = 86
-    load_model_nr = 36  # TODO change
+    load_model_nr = 36  # NOTE
     load_model_nr_vae = 526
     batch_size = 16
     imgs_to_consider = 100_000

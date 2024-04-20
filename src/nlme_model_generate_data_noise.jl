@@ -9,23 +9,12 @@ include("nlme_model.jl")
 pop_size = 1_000_000
 η_size = 3
 selected_features = [92, 111, 50, 3, 91, 67, 37, 8, 90, 120, 54, 56, 21, 61, 75, 29, 80, 12, 95, 118, 73, 94, 101, 20, 48, 99, 104, 13, 59, 52, 106, 79, 4, 86, 93, 85, 72, 32, 87, 35, 47, 113, 40, 53, 36, 55, 122, 22, 5, 2, 88, 77, 26, 15, 7, 108, 58, 28, 39, 128, 126, 25, 103, 65, 105, 34, 18, 69, 27, 43, 64, 123, 38, 78, 17, 121, 42, 49, 33, 66, 57, 6, 24, 112, 10, 115, 68, 45, 11, 51, 41, 97, 70, 102, 114, 89, 71, 44, 110, 109, 62, 31, 124, 16, 1, 74, 9, 119, 14, 83, 117, 76, 60, 46, 23, 84, 98, 82, 100, 107, 81, 125, 127, 30, 19, 96, 63, 116]
-pwd()
+
 # Using for test data
 dict_synth = load("noise_0.0_eta_approx_and_lv_data_1000k.jld2")
 println(dict_synth.keys)
 lvs_mat = getindex.(dict_synth["lvs_matrix"])
 η_true = getindex.(dict_synth["η_true"])
-
-#test
-
-# lvs_mat_loaded = getindex.(dict_synth["synth_data_pairs"], 3);
-# ηs_loaded = getindex.(dict_synth["synth_data_pairs"], 4);
-# η_true = hcat([t.η for t in ηs_loaded]...)
-# lvs_mat = hcat([t for t in lvs_mat_loaded]...)
-
-# Using for train and validation data data
-# lvs_mat = randn(Float32, (LATENT_DIM, pop_size))
-# η_true = lvs_mat[selected_features[1:3], :]
 
 var_true = var(η_true)
 var_noise = 0.0

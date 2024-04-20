@@ -14,7 +14,6 @@ nll_cis = Dict()
 
 # var_noise = 0.0
 for var_noise in [0.0, 1.0, 9.0, 18.0, 49.0]
-# for var_noise in [0.0, 1.0]
     pop_size = 100000
     η_size = 3
     obstimes=0:0.5:10
