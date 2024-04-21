@@ -18,3 +18,5 @@ output_matrix
 saved_losses
 out.mp4
 synthetic_saved_losses
+__logbook__.ipynb
+use_SD_model_experiment.ipynb
