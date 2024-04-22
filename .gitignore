@@ -22,3 +22,4 @@ __logbook__.ipynb
 use_SD_model_experiment.ipynb
 synthetic_saved_losses
 saved_losses
+train_model_MNIST.jl
