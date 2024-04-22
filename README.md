@@ -10,3 +10,5 @@ This repository contains the code for how this data was created.
 
 A notebook showcasing the Stable Diffusion model is located under src/use_SD_model.ipynb
 
+
+![Diffusion Process](images/diffusion_process.gif)
