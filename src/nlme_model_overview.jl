@@ -2,7 +2,6 @@ using Pumas
 using DeepPumas
 using CairoMakie
 
-
 datamodel = @model begin
   @param begin
     tvImax ∈ RealDomain(; lower=0., init=1.1)
