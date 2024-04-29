@@ -81,6 +81,8 @@ To get started with the Image-Longitudinal Integration for Predictive Modeling p
 
 ## Citation
 If you use the resources or code from this repository in your research, please cite our NeurIPS submission:
+
+```bibtex
 @inproceedings{neurips_paper_id,
   title={Bridging Medical Images and Longitudinal Data},
   author={Deltadahl et al.},
@@ -88,7 +90,7 @@ If you use the resources or code from this repository in your research, please c
   year={2024},
   url={https://doi.org/TODO}
 }
-
+```
 
 ## License
 This project is licensed under the terms of the MIT license.
