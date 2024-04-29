@@ -7,7 +7,7 @@ export new_train_steps=115000
 export total_steps=$((new_train_steps + previous_train_steps))
 export output_dir="saved_models/${total_steps}-step-model"
 
-accelerate launch --mixed_precision="fp16"  train_text_to_image_numeric.py \
+accelerate launch --mixed_precision="fp16"  train_SD.py \
   --pretrained_model_name_or_path=$MODEL_NAME \
   --dataset_name=$dataset_name \
   --resolution=512 \
