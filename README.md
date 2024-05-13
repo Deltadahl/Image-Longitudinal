@@ -73,12 +73,11 @@ This GIF demonstrates the image generation process starting from complete noise,
 If you use the resources or code from this repository in your research, please cite our NeurIPS submission:
 
 ```bibtex
-@inproceedings{neurips_paper_id,
+@inproceedings{simon_deltadahl_2024,
   title={Bridging Medical Images and Longitudinal Data},
-  author={Deltadahl et al.},
+  author={Deltadahl, Simon and Vall, Andreu and Korsbo, Niklas},
   booktitle={NeurIPS},
   year={2024},
-  url={https://doi.org/TODO}
 }
 ```
 
