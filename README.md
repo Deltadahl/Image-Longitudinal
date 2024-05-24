@@ -45,7 +45,7 @@ Image-Longitudinal/
 
 To get started with the Image-Longitudinal Integration for Predictive Modeling project, follow these steps:
 
-1. **Install Julia**: Ensure that you have Julia installed on your system. Visit the official Julia website (https://julialang.org) and download the appropriate version for your operating system. Follow the installation instructions provided on the website.
+1. **Install Julia**: Ensure that you have Julia installed on your system. Visit the official Julia website (https://julialang.org) and download Julia 1.9.4. Follow the installation instructions provided on the website.
 
 2. **Set up the Python Environment for Stable Diffusion**: Navigate to the `src/Stable_Diffusion` directory in the project repository. Open a terminal or command prompt and run the following command to create a new Python environment using the provided `environment.yaml` file:
 
