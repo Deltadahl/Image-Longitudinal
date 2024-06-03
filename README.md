@@ -25,7 +25,7 @@ Image-Longitudinal/
 │   │   ├── environment.yaml    # Conda environment for Python dependencies
 │   │   ├── use_SD_model.ipynb  # Notebook to use the pretrained SD model
 │   │   ├── train_script.sh     # Script to train the SD model
-│   │   └── train_SD.py         # Script to train the SD model
+│   │   └── train_SD.py         # Code to train the SD model
 │   │
 │   └── NLME/                   # Nonlinear Mixed-Effects model files
 │       ├── nlme_model.jl       # NLME model implementation
@@ -53,7 +53,7 @@ To get started with the Image-Longitudinal Integration for Predictive Modeling p
    conda env create -f environment.yaml
    ```
 
-   This will create a new Conda environment with all the necessary dependencies for running the Stable Diffusion model.
+   This will create a new Conda environment with the necessary dependencies for running the Stable Diffusion model.
 
 3. **Activate the Python Environment**: Before running the Stable Diffusion model, make sure to activate the newly created Python environment. Use the following command:
 
@@ -63,7 +63,14 @@ To get started with the Image-Longitudinal Integration for Predictive Modeling p
 
    Replace `your_environment_name` with the name of the environment specified in the `environment.yaml` file.
 
-4. **Customize and Experiment**: Feel free to modify the provided scripts or create new ones to experiment with different configurations.
+4. **Set up the Julia Environment**: Navigate to the root directory of the project where the `Manifest.toml` file is located. Open a terminal or command prompt and run the following commands to activate the Julia environment:
+ ```
+julia --project=.
+julia> using Pkg
+julia> Pkg.instantiate()
+```  
+
+5. **Customize and Experiment**: Feel free to modify the provided scripts or create new ones to experiment with different configurations.
 
 ### Image Generation GIF
 This GIF demonstrates the image generation process starting from complete noise, gradually denoising until a clear OCT image is obtained.
@@ -74,8 +81,8 @@ If you use the resources or code from this repository in your research, please c
 
 ```bibtex
 @inproceedings{simon_deltadahl_2024,
-  title={Bridging Medical Images and Longitudinal Data},
-  author={Deltadahl, Simon and Vall, Andreu and Korsbo, Niklas},
+  title={A Framework for Evaluating Predictive Models Using Synthetic Image Covariates and Longitudinal Data},
+  author={Deltadahl, Simon and Vall, Andreu and Ivaturi, Vijay and Korsbo, Niklas},
   booktitle={NeurIPS},
   year={2024},
 }
