@@ -1,4 +1,4 @@
-# Bridging Medical Images and Longitudinal Data
+# A Framework for Evaluating Predictive Models Using Synthetic Image Covariates and Longitudinal Data
 
 ## Overview
 This repository contains the code and resources for generating synthetic Optical Coherence Tomography (OCT) images and associated longitudinal data. Our approach utilizes a hybrid model integrating Variational Autoencoder (VAE), Stable Diffusion (SD), and Nonlinear Mixed-Effects (NLME) models to create a synthetic dataset. This allows for controlled studies of predictive models in healthcare without compromising data privacy.
