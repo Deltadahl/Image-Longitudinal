@@ -80,11 +80,11 @@ This GIF demonstrates the image generation process starting from complete noise,
 If you use the resources or code from this repository in your research, please cite our NeurIPS submission:
 
 ```bibtex
-@inproceedings{simon_deltadahl_2024,
+@article{deltadahl2024framework,
   title={A Framework for Evaluating Predictive Models Using Synthetic Image Covariates and Longitudinal Data},
   author={Deltadahl, Simon and Vall, Andreu and Ivaturi, Vijay and Korsbo, Niklas},
-  booktitle={NeurIPS},
-  year={2024},
+  journal={arXiv preprint arXiv:2410.16177},
+  year={2024}
 }
 ```
 
